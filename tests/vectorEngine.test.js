@@ -398,8 +398,8 @@ export function runVectorEngineTests() {
     const ekspor = FEATURE_STATUS.find((f) => f.label === 'Ekspor XML');
     assert(ekspor && ekspor.available === true, 'ekspor XML kini tersedia (lokal)');
     assert(
-      ekspor.note && ekspor.note.includes('belum diuji'),
-      'catatan ekspor menyatakan kompatibilitas impor belum teruji: ' + (ekspor && ekspor.note)
+      ekspor.note && ekspor.note.includes('belum terbukti'),
+      'catatan ekspor menyatakan impor nyata belum terbukti: ' + (ekspor && ekspor.note)
     );
   });
 

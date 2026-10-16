@@ -6,7 +6,7 @@ export const FEATURE_STATUS = [
   { label: 'Mesin Vektorisasi (SVG)', available: true },
   { label: 'Pratinjau Animasi Lokal', available: true },
   { label: 'Adapter XML Alight Motion', available: true, note: 'statis, tanpa keyframe' },
-  { label: 'Ekspor XML', available: true, note: 'kompatibilitas impor belum diuji' },
+  { label: 'Ekspor XML', available: true, note: 'impor nyata belum terbukti (TS-1)' },
 ];
 
 export function renderFeatureStatusStrip(container) {

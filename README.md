@@ -2,7 +2,7 @@
 
 Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dengan target ekspor XML untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban; tidak ada akun, backend, atau API berbayar.
 
-Status: v0.4.0 — ekspor XML lokal (backlog AM-1, XV-1, EX-1 selesai) di atas perbaikan navigasi NB-1, redesign visual "Imperfect by Design" (DS-1), dan mesin vektorisasi SVG (VE-1, VE-2). Keluaran XML berupa bentuk statis tanpa keyframe; kompatibilitas impor di aplikasi Alight Motion belum diuji (backlog TS-1).
+Status: v0.4.1 — struktur ekspor XML diselaraskan dengan pola ekspor asli Alight Motion (backlog AM-2, XV-2 selesai) di atas ekspor XML lokal v0.4.0 (AM-1, XV-1, EX-1), perbaikan navigasi NB-1, redesign visual "Imperfect by Design" (DS-1), dan mesin vektorisasi SVG (VE-1, VE-2). Keluaran XML berupa bentuk statis tanpa keyframe. Catatan faktual: ekspor v0.4.0 ditolak Alight Motion saat diimpor ("Gagal mengunggah. Formatnya tidak benar atau file rusak."); v0.4.1 menyelaraskan struktur dengan tiga ekspor asli yang diperiksa, namun impor nyata belum diuji ulang (backlog TS-1) sehingga tidak ada klaim kompatibilitas.
 
 ## Identitas visual (v0.3.0)
 
@@ -22,7 +22,7 @@ Berfungsi:
 
 Belum diimplementasikan (ditandai jelas di antarmuka):
 - Penerapan preset animasi menjadi keyframe XML (backlog AN-1) — menunggu verifikasi semantik keyframe melalui uji impor nyata.
-- Uji impor nyata di aplikasi Alight Motion pada perangkat Android (backlog TS-1). Tanpa bukti tersebut, proyek ini tidak mengklaim kompatibilitas impor apa pun. Lihat `docs/SDD.md` untuk backlog.
+- Uji impor ulang nyata di aplikasi Alight Motion pada perangkat Android (backlog TS-1). Ekspor v0.4.0 terbukti gagal diimpor; struktur v0.4.1 telah diselaraskan dengan pola ekspor asli, namun sampai uji ulang lulus, proyek ini tidak mengklaim kompatibilitas impor apa pun. Lihat `docs/SDD.md` untuk backlog.
 
 ## Menjalankan secara lokal
 
@@ -37,7 +37,7 @@ Lalu buka http://localhost:8080.
 
 ## Menjalankan pengujian
 
-Rangkaian uji vektorisasi dan ekspor XML (39 kasus: 18 VE-1 + 21 AM-1/XV-1/EX-1, tanpa Node.js) dapat dijalankan di peramban:
+Rangkaian uji vektorisasi, ekspor XML, dan regresi impor (44 kasus: 18 VE-1 + 21 AM-1/XV-1/EX-1 + 5 regresi AM-2/XV-2, tanpa Node.js) dapat dijalankan di peramban:
 
 ```bash
 python3 -m http.server 8080
@@ -59,10 +59,11 @@ js/modules/           Pipeline: imageImport, silhouette, vectorEngine,
                       exportManager (ekspor lokal)
 js/ui/                Komponen UI: pages, uploadZone, previewPanel,
                       vectorPanel, animationPanel, exportPanel, statusStrip
-tests/                Rangkaian uji vektorisasi, adapter/ekspor XML, harness peramban
+tests/                Rangkaian uji vektorisasi, adapter/ekspor XML, regresi
+                      impor XML, harness peramban
 docs/SDD.md           Hasil audit, spesifikasi, kriteria penerimaan, backlog
 ```
 
 ## Kompatibilitas
 
-Alight Creative tidak memublikasikan spesifikasi resmi format XML. Adapter AM-1 dibangun dari dokumentasi komunitas hasil rekayasa balik (alight-motion-docs) dan menghasilkan XML yang lulus validasi lokal, namun hal itu bukan klaim vektor animasi final (keluaran masih bentuk statis) maupun klaim kompatibilitas impor. Klaim kompatibilitas hanya akan diberikan setelah berkas XML yang dihasilkan lulus uji impor nyata di Alight Motion.
+Alight Creative tidak memublikasikan spesifikasi resmi format XML. Adapter dibangun dari dokumentasi komunitas hasil rekayasa balik (alight-motion-docs) dan, sejak v0.4.1, dari pembanding langsung tiga ekspor asli Alight Motion. Bukti lapangan: ekspor v0.4.0 ditolak Alight Motion Android dengan pesan "Gagal mengunggah. Formatnya tidak benar atau file rusak."; perbaikan AM-2 (prolog XML, precompose, retime/retimeAdaptFPS, mediaFillMode) diselaraskan dengan pola ekspor asli dan validator XV-2 menolak dokumen tanpa pola tersebut sebelum unduhan. Keluaran tetap bentuk statis (bukan klaim vektor animasi final). Validasi struktural otomatis terpisah dari hasil impor nyata: klaim kompatibilitas hanya akan diberikan setelah berkas XML hasil v0.4.1 lulus uji impor nyata di Alight Motion (backlog TS-1).

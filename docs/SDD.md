@@ -5,7 +5,7 @@ Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-16.
 
 ## 1. Ringkasan
 
-Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Pembaruan v0.4.0 memperbaiki bug navigasi "Buka Studio" (backlog NB-1, lihat bagian 9) dan menyelesaikan adapter XML, validasi XML, serta unduhan ekspor lokal berupa bentuk statis tanpa keyframe (backlog AM-1, XV-1, EX-1; lihat bagian 10). Penerapan keyframe preset (AN-1) dan bukti kompatibilitas impor nyata (TS-1) tetap tertunda dan ditandai secara jujur di antarmuka.
+Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Pembaruan v0.4.0 memperbaiki bug navigasi "Buka Studio" (backlog NB-1, lihat bagian 9) dan menyelesaikan adapter XML, validasi XML, serta unduhan ekspor lokal berupa bentuk statis tanpa keyframe (backlog AM-1, XV-1, EX-1; lihat bagian 10). Penerapan keyframe preset (AN-1) dan bukti kompatibilitas impor nyata (TS-1) tetap tertunda dan ditandai secara jujur di antarmuka. Pembaruan v0.4.1 (backlog AM-2, XV-2) memperbaiki kegagalan impor XML yang terbukti nyata di lapangan: struktur keluaran diselaraskan dengan pola ekspor asli Alight Motion dan validator diperketat dengan fixture regresi (lihat bagian 11).
 
 ## 2. Hasil Audit (P0)
 
@@ -38,7 +38,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 ### 2.4 Keterbatasan dan risiko kompatibilitas
 
 1. Format XML Alight Motion adalah format komunitas hasil rekayasa balik, bukan spesifikasi resmi, dan dapat berubah antar versi aplikasi.
-2. Belum ada bukti keberhasilan impor nyata untuk XML yang dihasilkan Naze Vector; karena itu MVP ini tidak mengklaim kompatibilitas apa pun.
+2. Uji impor nyata v0.4.0 di Alight Motion (Android) GAGAL dengan pesan "Gagal mengunggah. Formatnya tidak benar atau file rusak."; perbaikan struktural v0.4.1 belum diuji ulang di perangkat nyata. Karena itu proyek ini tidak mengklaim kompatibilitas apa pun hingga TS-1 lulus.
 3. Fitur tertentu (misalnya deteksi bentuk) terikat versi aplikasi Alight Motion tertentu.
 4. Raster tidak dapat disematkan dalam XML; alur ekspor tahap berikutnya harus menangani representasi vektor murni.
 5. Dukungan impor iOS terbatas; pengujian awal harus dilakukan di Android.
@@ -66,8 +66,8 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | RF-07 | Preset animasi Silhouette Reveal, Scale Pulse, Rotation Motion dengan durasi dan intensitas, kontrol putar, jeda, ulangi | Diimplementasikan (pratinjau lokal) |
 | RF-08 | Panel ekspor: nama berkas, format target, status validasi, informasi kompatibilitas, pesan kesalahan yang jelas | Diimplementasikan (panel); ekspor ditandai belum tersedia |
 | RF-09 | Mesin vektorisasi (path SVG) | Diimplementasikan (VE-1; uji 18/18 lulus, lihat bagian 7) |
-| RF-10 | Adapter XML Alight Motion | Diimplementasikan (AM-1, v0.4.0): bentuk statis tanpa keyframe; tanpa klaim kompatibilitas impor (TS-1) |
-| RF-11 | Validasi XML | Diimplementasikan (XV-1, v0.4.0): validasi lokal, bukan bukti kompatibilitas |
+| RF-10 | Adapter XML Alight Motion | Diimplementasikan (AM-1 + AM-2, v0.4.1): bentuk statis tanpa keyframe; struktur diselaraskan dengan pola ekspor asli; tanpa klaim kompatibilitas impor (TS-1) |
+| RF-11 | Validasi XML | Diimplementasikan (XV-1 + XV-2, v0.4.1): validasi lokal termasuk pola struktural ekspor asli dan fixture regresi; bukan bukti kompatibilitas |
 | RF-12 | Ekspor XML | Diimplementasikan (EX-1, v0.4.0): unduhan .xml lokal berupa bentuk statis |
 
 ### 3.2 Kebutuhan non-fungsional
@@ -104,6 +104,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/ui/pages.js | Perutean lokal antar halaman |
 | tests/vectorEngine.test.js | Rangkaian uji murni mesin vektorisasi (18 kasus, tanpa DOM, dapat dijalankan di peramban) |
 | tests/amAdapter.test.js | Rangkaian uji murni adapter XML, validasi, dan integrasi ekspor (21 kasus, tanpa DOM) |
+| tests/amImportFixture.test.js | Rangkaian uji regresi kegagalan impor XML v0.4.0 (5 kasus: fixture ekspor asli, penolakan pola gagal, kesesuaian pola keluaran baru) |
 | tests/index.html | Harness peramban untuk menjalankan rangkaian uji |
 
 Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau raster dirasterisasi. vectorEngine mengubah mask menjadi VectorPathData (SVG) yang ditampilkan sebagai pratinjau vektor beserta statistiknya; perubahan gambar, mode, ambang, penyederhanaan, dan warna memicu penghitungan ulang dari state terkini (lihat 7.3). Saat tombol ekspor ditekan, exportManager menghitung ulang mask dan vektor dari state terkini, lalu amAdapter membangun XML scene statis (satu bentuk imported) dan xmlValidation memverifikasinya sebelum unduhan (lihat bagian 10). Tahap yang masih belum tersedia: penerapan AnimationClipData preset menjadi keyframe XML (AN-1). Setiap tahap memancarkan pesan status yang jujur.
@@ -134,10 +135,12 @@ Belum diimplementasikan (ditandai eksplisit di UI): penerapan keyframe preset ke
 | VE-1 | Mesin vektorisasi mask ke path SVG | Selesai (v0.2.0): marching squares pada crack boundary + RDP per kontur tertutup; uji 18/18 lulus (lihat 7) |
 | VE-2 | Penyederhanaan path bertingkat | Selesai (v0.2.0): toleransi rendah 0.3 px, sedang 1.5 px, tinggi 3.5 px; override tolerancePx didukung; terhubung ke kontrol state |
 | AM-1 | Adapter XML Alight Motion | Selesai (v0.4.0): bentuk imported statis dari kontur vektor; lihat bagian 10. Tanpa klaim kompatibilitas sebelum TS-1 |
+| AM-2 | Penyelarasan struktur XML dengan pola ekspor asli (prolog, precompose, retime/retimeAdaptFPS, mediaFillMode) | Selesai (v0.4.1): didasarkan pada tiga ekspor asli Alight Motion; lihat bagian 11. Impor nyata belum terbukti (TS-1) |
 | AN-1 | Penerapan keyframe preset ke properti AM (scale, rotation, opacity) | Bergantung TS-1: semantik keyframe pada bentuk imported harus diverifikasi lewat uji impor nyata sebelum diimplementasikan |
 | XV-1 | Validasi XML (well-formedness, atribut wajib, referensi ID) | Selesai (v0.4.0): dijalankan sebelum unduhan; lihat bagian 10 |
+| XV-2 | Pengetatan validator + fixture regresi kegagalan impor | Selesai (v0.4.1): validator menolak dokumen tanpa prolog/pola ekspor asli; fixture regresi 5 kasus; lihat bagian 11 |
 | EX-1 | Unduh .xml + proses unduhan multi-berkas bila diperlukan | Selesai (v0.4.0): unduhan satu .xml lokal; multi-berkas tidak diperlukan untuk keluaran vektor murni; lihat bagian 10 |
-| TS-1 | Uji impor nyata di Alight Motion (Android) | Bukti keberhasilan wajib sebelum klaim kompatibilitas apa pun |
+| TS-1 | Uji impor nyata di Alight Motion (Android) | v0.4.0 terbukti gagal diimpor di lapangan; v0.4.1 wajib diuji ulang di perangkat nyata sebelum klaim kompatibilitas apa pun |
 | DS-1 | Redesign visual "Imperfect by Design" | Selesai (v0.3.0): lihat bagian 8 |
 | NB-1 | Perbaikan bug tombol "Buka Studio" (no-op) dan reset gulir saat pindah halaman | Selesai (v0.4.0): lihat bagian 9 |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
@@ -393,3 +396,53 @@ Dua asersi uji lama yang diperbarui (bukan dihapus): (a) kasus 17 "requestXmlExp
 | AC-05 | Tidak ada klaim ekspor XML valid tanpa bukti | Badge dan pesan menyatakan "validasi lokal" dan "kompatibilitas belum diuji"; klaim kompatibilitas ditunda hingga TS-1 | Terpenuhi |
 | AN-1 | Keyframe preset | Tidak dikerjakan — prasyarat TS-1 (lihat 10.1) | Tetap backlog |
 | TS-1 | Uji impor nyata | Tidak dapat dijalankan di lingkungan ini | Tetap backlog |
+
+## 11. Implementasi AM-2 + XV-2 (v0.4.1): perbaikan kegagalan impor XML
+
+### 11.1 Bukti kegagalan
+
+Pengguna melaporkan Alight Motion (Android) menolak berkas XML hasil ekspor v0.4.0 dengan pesan persis: "Gagal mengunggah. Formatnya tidak benar atau file rusak." Berkas yang ditolak (533 byte, direkonstruksi dari kode v0.4.0 yang berjalan) tidak memiliki empat hal: prolog XML; atribut scene precompose; atribut scene retime dan retimeAdaptFPS; atribut mediaFillMode pada elemen shape. Validator v0.4.0 (XV-1) meluluskannya karena hanya memeriksa atribut wajib versi dokumentasi komunitas — bukti bahwa validasi sintaks saja tidak cukup membuktikan kompatibilitas.
+
+### 11.2 Pembanding berbukti
+
+Tiga ekspor asli Alight Motion diperiksa langsung melalui GitHub: afrizz19/LyricsMusicAM (base.xml, AM 5.0.272.1028383), andikachan/alight-web-editor (preset/Proyek Baru 1.xml, AM 5.0.273.1028425), dan Rahmadfirdiansyah/Alight-motion (XML/Gambling.xml, AM 5.0.260). Ketiganya konsisten: dokumen diawali deklarasi prolog; scene memuat precompose="dynamicResolution", retime="freeze", retimeAdaptFPS="false" (scene bersarang memakai retime="off"); setiap elemen memuat mediaFillMode="fill". Dokumentasi komunitas alight-motion-docs menyatakan mediaFillMode selalu ditulis (always written). Tidak ada atribut atau struktur lain yang ditambahkan berdasarkan dugaan.
+
+### 11.3 Perbaikan (hanya penyebab yang didukung bukti)
+
+js/modules/amAdapter.js (AM-2): prolog XML ditulis di awal dokumen; atribut precompose="dynamicResolution" pada scene sebelum bgcolor; atribut retime="freeze" dan retimeAdaptFPS="false" setelah amplatform; atribut mediaFillMode="fill" pada shape. Urutan atribut mengikuti ekspor asli. Geometri kontur, transform, fillColor, alokasi ID, dan opsi adapter tidak berubah.
+
+### 11.4 Fixture regresi dan pengetatan validator
+
+- tests/amImportFixture.test.js (baru, 5 kasus): keluaran v0.4.0 yang gagal diimpor kini DITOLAK validator (isu prolog, precompose, retime, mediaFillMode) sehingga pola gagal tidak dapat terunduh lagi; fixture kutipan ekspor asli Alight Motion 5.0.273 LULUS validasi; keluaran adapter v0.4.1 mengikuti pola struktural ekspor asli; atribut scene konstan (amver, ffver, am, amplatform, fps, precompose, retime, retimeAdaptFPS) bernilai sama dengan ekspor asli; requestXmlExport menghasilkan keluaran berpola dan lulus validasi.
+- js/modules/xmlValidation.js (XV-2): menolak dokumen tanpa prolog; mensyaratkan atribut pola ekspor asli pada scene; mensyaratkan mediaFillMode pada setiap elemen; pesan isu menyebut atribut yang hilang.
+- js/ui/statusStrip.js dan js/ui/exportPanel.js: catatan serta pesan sukses diperbarui menjadi "impor nyata belum terbukti (TS-1)" dan meminta pengguna melaporkan pesan kesalahan bila impor gagal.
+- tests/amAdapter.test.js dan tests/vectorEngine.test.js: aseri diperbarui (bukan dihapus) sesuai perilaku baru; tests/index.html menjalankan ketiga suite (18 + 21 + 5 kasus).
+
+### 11.5 Hasil verifikasi (dijalankan sebelum push, sandbox tanpa peramban)
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| Rangkaian uji vektorisasi (regresi) | Lulus 18/18 |
+| Rangkaian uji adapter/validasi/ekspor (aseri diperbarui) | Lulus 21/21 |
+| Rangkaian uji regresi impor baru (fixture) | Lulus 5/5 |
+| Kompilasi sintaks modul dan suite uji | Lulus |
+| Total | 44/44 lulus |
+
+### 11.6 Keterbatasan
+
+- Impor nyata v0.4.1 ke Alight Motion pada perangkat nyata BELUM diuji ulang; tidak ada klaim kompatibilitas. Hasil validasi otomatis dipisahkan dari hasil impor nyata (TS-1).
+- Unduhan berkas di peramban (Blob, createObjectURL, anchor) tetap tidak dapat diuji di sandbox dan wajib diverifikasi manual.
+- Asumsi penempatan kontur terpusat relatif terhadap transform.location tetap belum terverifikasi (lihat 10.3 butir 2); bila uji impor nyata v0.4.1 masih gagal, penyebab berikutnya harus ditelusuri dari pesan kesalahan aktual, bukan dugaan.
+- Pembanding mewakili Alight Motion 5.0.260-5.0.273 di Android; versi lain belum diperiksa.
+
+### 11.7 Traceability
+
+| Backlog / Kebutuhan | Kewajiban | Bukti | Status |
+|---------------------|-----------|-------|--------|
+| AM-2 | Struktur XML mengikuti pola ekspor asli | amAdapter.js v0.4.1; fixture 11.4 | Selesai (struktural; impor nyata belum terbukti) |
+| XV-2 | Validator menolak pola gagal; fixture regresi | xmlValidation.js; tests/amImportFixture.test.js 5/5 | Selesai |
+| RF-10 | Adapter XML Alight Motion | 11.3 | Diimplementasikan (AM-1 + AM-2) |
+| RF-11 | Validasi XML | 11.4 | Diimplementasikan (XV-1 + XV-2) |
+| AC-05 | Tidak ada klaim ekspor XML valid tanpa bukti | Validasi otomatis dipisahkan dari impor nyata; antarmuka menyatakan impor nyata belum terbukti (TS-1) | Terpenuhi |
+| TS-1 | Uji impor nyata | v0.4.0 gagal diimpor di lapangan; v0.4.1 wajib diuji ulang di perangkat nyata | Tetap backlog |
+

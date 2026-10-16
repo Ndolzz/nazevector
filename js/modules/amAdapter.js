@@ -1,9 +1,13 @@
-// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1, v0.4.0).
+// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2, v0.4.1).
 // Membangun dokumen scene XML Alight Motion dari VectorPathData (keluaran VE-1):
 // satu elemen <shape> non-live (imported) dengan kontur di <parameter><contour>.
-// Basis rujukan: dokumentasi komunitas alight-motion-docs (docs/SDD.md 2.3).
+// Basis rujukan: dokumentasi komunitas alight-motion-docs (docs/SDD.md 2.3) dan
+// tiga ekspor asli Alight Motion (AM-2, v0.4.1): dokumen diawali prolog <?xml?>,
+// scene memuat precompose/retime/retimeAdaptFPS, setiap elemen memuat mediaFillMode
+// (lihat docs/SDD.md bagian 11).
 // Batas jujur: keluaran berupa bentuk statis TANPA keyframe (AN-1 belum dikerjakan)
-// dan kompatibilitas impor belum diuji di aplikasi Alight Motion (TS-1).
+// dan impor nyata belum terbukti: ekspor v0.4.0 ditolak Alight Motion, struktur
+// v0.4.1 diselaraskan dengan pola ekspor asli namun wajib diuji ulang (TS-1).
 // Asumsi belum terverifikasi (menunggu TS-1): kontur bentuk imported diposisikan
 // terpusat relatif terhadap transform.location — bukti tidak langsung dari
 // dokumentasi komunitas: template .rect berukuran 100x100 digambar terpusat pada
@@ -14,7 +18,7 @@ export const AM_ADAPTER_STATUS = {
   id: 'AM',
   label: 'Adapter XML Alight Motion',
   reason:
-    'Menghasilkan XML scene berisi satu bentuk statis (tanpa keyframe). Kompatibilitas impor belum diuji di aplikasi Alight Motion (TS-1).',
+    'Menghasilkan XML scene berisi satu bentuk statis (tanpa keyframe). Struktur diselaraskan dengan ekspor asli (AM-2); impor nyata belum terbukti (TS-1).',
 };
 
 const SCENE_DEFAULTS = {
@@ -26,6 +30,9 @@ const SCENE_DEFAULTS = {
   am: 'com.alightcreative.motion/5.0.273.1028425',
   amplatform: 'android',
 };
+
+// Prolog ditulis oleh setiap ekspor asli Alight Motion yang diperiksa (AM-2).
+const XML_PROLOG = '<?xml version=\'1.0\' encoding=\'UTF-8\' ?>';
 
 // buildAlightMotionXml(vectorPathData, options) -> string XML scene.
 // options (semua opsional, untuk determinisme pengujian):
@@ -51,6 +58,7 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     .join(' ');
 
   return (
+    XML_PROLOG +
     '<scene title="' +
     escapeXml(title) +
     '" width="' +
@@ -61,7 +69,7 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     width +
     '" exportHeight="' +
     height +
-    '" bgcolor="#00000000" totalTime="' +
+    '" precompose="dynamicResolution" bgcolor="#00000000" totalTime="' +
     totalTime +
     '" fps="' +
     escapeXml(fps) +
@@ -75,10 +83,10 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     SCENE_DEFAULTS.am +
     '" amplatform="' +
     SCENE_DEFAULTS.amplatform +
-    '">' +
+    '" retime="freeze" retimeAdaptFPS="false">' +
     '<shape id="1" label="Shape 1" startTime="0" endTime="' +
     totalTime +
-    '" fillType="color">' +
+    '" fillType="color" mediaFillMode="fill">' +
     '<transform>' +
     '<location value="' +
     formatNumber(centerX) +

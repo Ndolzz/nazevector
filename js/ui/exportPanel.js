@@ -53,8 +53,8 @@ export function initExportPanel(store) {
         exportMessage: {
           kind: 'success',
           text:
-            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi lokal. ' +
-            'Kompatibilitas impor di Alight Motion belum diuji (lihat catatan panel).',
+            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal (pola ekspor asli). ' +
+            'Impor nyata ke Alight Motion belum terbukti (TS-1); bila gagal diimpor, mohon laporkan pesan kesalahannya.',
         },
       });
     } else {

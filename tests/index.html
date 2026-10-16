@@ -69,14 +69,15 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Uji Naze Vector — VE-1 + AM-1/XV-1/EX-1</h1>
-    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js dan tests/amAdapter.test.js di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
+    <h1>Uji Naze Vector — VE-1 + AM-1/XV-1/EX-1 + Regresi Impor (AM-2/XV-2)</h1>
+    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js, tests/amAdapter.test.js, dan tests/amImportFixture.test.js di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
     <div class="summary" id="summary"><p class="pending">Memuat modul uji…</p></div>
     <div id="cases"></div>
   </div>
   <script type="module">
     import { runVectorEngineTests } from './vectorEngine.test.js';
     import { runAmAdapterTests } from './amAdapter.test.js';
+    import { runAmImportFixtureTests } from './amImportFixture.test.js';
 
     const summary = document.getElementById('summary');
     const cases = document.getElementById('cases');
@@ -84,11 +85,12 @@
     try {
       const ve = runVectorEngineTests();
       const am = runAmAdapterTests();
+      const fx = runAmImportFixtureTests();
       results = {
-        total: ve.total + am.total,
-        passed: ve.passed + am.passed,
-        failed: ve.failed + am.failed,
-        failures: ve.failures.concat(am.failures),
+        total: ve.total + am.total + fx.total,
+        passed: ve.passed + am.passed + fx.passed,
+        failed: ve.failed + am.failed + fx.failed,
+        failures: ve.failures.concat(am.failures, fx.failures),
       };
     } catch (error) {
       summary.textContent = '';

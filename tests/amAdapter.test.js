@@ -118,9 +118,17 @@ export function runAmAdapterTests() {
 
   /* ---------- AM-1: pembangkit XML ---------- */
 
-  test('AM-1: struktur scene lengkap dengan atribut wajib', () => {
+  test('AM-1/AM-2: struktur scene lengkap dengan prolog dan atribut wajib', () => {
     const xml = buildAlightMotionXml(makeVectorData(), OPTIONS);
+    assert(xml.startsWith("<?xml version='1.0' encoding='UTF-8' ?>"), 'prolog XML ada');
     assertIncludes(xml, '<scene ', 'akar scene');
+    for (const attr of [
+      'precompose="dynamicResolution"',
+      'retime="freeze"',
+      'retimeAdaptFPS="false"',
+    ]) {
+      assertIncludes(xml, attr, 'atribut pola ekspor asli (AM-2)');
+    }
     for (const attr of [
       'title="Uji"',
       'width="100"',
@@ -141,7 +149,7 @@ export function runAmAdapterTests() {
 
   test('AM-1: satu shape imported dengan transform, fillColor, dan kontur', () => {
     const xml = buildAlightMotionXml(makeVectorData(), OPTIONS);
-    assertIncludes(xml, '<shape id="1" label="Shape 1" startTime="0" endTime="2500" fillType="color">', 'atribut shape');
+    assertIncludes(xml, '<shape id="1" label="Shape 1" startTime="0" endTime="2500" fillType="color" mediaFillMode="fill">', 'atribut shape (mediaFillMode, AM-2)');
     assert(!xml.includes(' s="'), 'bentuk imported tidak memakai template s');
     assertIncludes(xml, '<location value="50.000000,40.000000,0.000000"/>', 'location di pusat kanvas');
     assertIncludes(xml, '<fillColor value="#FF3B82F6"/>', 'warna #AARRGGBB');

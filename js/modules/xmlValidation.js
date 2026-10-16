@@ -1,14 +1,17 @@
-// js/modules/xmlValidation.js — Validasi dokumen XML Alight Motion (XV-1, v0.4.0).
+// js/modules/xmlValidation.js — Validasi dokumen XML Alight Motion (XV-1 + XV-2, v0.4.1).
 // Validator murni tanpa DOMParser (agar berjalan di semua peramban dan di harness
 // uji tanpa Node): well-formedness, akar scene, atribut wajib, ID unik positif,
-// rentang waktu, warna #AARRGGBB, dan kontur tidak kosong.
+// rentang waktu, warna #AARRGGBB, dan kontur tidak kosong. XV-2 (v0.4.1) menambah
+// pemeriksaan pola struktural ekspor asli: prolog XML, atribut scene
+// precompose/retime/retimeAdaptFPS, dan mediaFillMode pada setiap elemen
+// (docs/SDD.md bagian 11).
 // Hasil: { valid: boolean, issues: string[] } dengan pesan berbahasa Indonesia.
 
 export const XML_VALIDATION_STATUS = {
   id: 'XV',
   label: 'Validasi XML',
   reason:
-    'Validasi lokal: well-formedness, atribut wajib scene, ID unik, rentang waktu, format warna, dan kontur. Bukan bukti kompatibilitas impor (TS-1).',
+    'Validasi lokal: well-formedness, prolog, atribut wajib scene, pola atribut ekspor asli (precompose, retime, retimeAdaptFPS, mediaFillMode), ID unik, rentang waktu, format warna, dan kontur. Bukan bukti kompatibilitas impor (TS-1).',
 };
 
 const SCENE_REQUIRED_ATTRS = [
@@ -36,8 +39,14 @@ const INT_ATTRS = [
   'ffver',
 ];
 
+// Atribut pola struktural ekspor asli Alight Motion (XV-2, v0.4.1).
+const SCENE_PATTERN_ATTRS = ['precompose', 'retime', 'retimeAdaptFPS'];
+
 export function validateAlightMotionXml(xmlString) {
   const issues = [];
+  if (typeof xmlString === 'string' && !/^\s*<\?xml[\s\S]*?\?>/.test(xmlString)) {
+    issues.push('Dokumen tanpa prolog XML: harus diawali deklarasi <?xml ...?> (pola ekspor asli).');
+  }
   const parsed = parseXml(xmlString, issues);
   if (!parsed) {
     return { valid: false, issues };
@@ -194,6 +203,11 @@ function checkScene(root, issues) {
       issues.push('Atribut "' + attr + '" harus bilangan bulat non-negatif, ditemukan "' + value + '".');
     }
   }
+  for (const attr of SCENE_PATTERN_ATTRS) {
+    if (root.attrs[attr] === undefined) {
+      issues.push('Atribut pola ekspor asli hilang pada scene: "' + attr + '".');
+    }
+  }
   const totalTime = Number(root.attrs.totalTime);
   if (root.attrs.totalTime !== undefined && (!Number.isInteger(totalTime) || totalTime <= 0)) {
     issues.push('Atribut "totalTime" harus bilangan bulat positif.');
@@ -223,6 +237,9 @@ function checkElements(root, issues) {
       issues.push('ID elemen duplikat: ' + id + '.');
     } else {
       seenIds.add(id);
+    }
+    if (element.attrs.mediaFillMode === undefined) {
+      issues.push('Elemen <' + element.name + ' id="' + element.attrs.id + '"> tanpa atribut "mediaFillMode" (pola ekspor asli).');
     }
     checkTiming(element, totalTime, issues);
     checkFillColor(element, issues);
