@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Naze Vector — Uji Mesin Vektorisasi (VE-1)</title>
+  <style>
+    :root {
+      --bg: #020617;
+      --surface: #0F172A;
+      --elevated: #1E293B;
+      --border: #334155;
+      --text: #F8FAFC;
+      --text-2: #94A3B8;
+      --primary: #3B82F6;
+      --success: #22C55E;
+      --danger: #EF4444;
+      --radius: 12px;
+      --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 20px 48px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; margin: 0 0 6px; }
+    .sub { color: var(--text-2); margin: 0 0 20px; font-size: 0.9rem; }
+    .summary {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 18px;
+      min-width: 120px;
+    }
+    .stat b { display: block; font-size: 1.3rem; }
+    .stat span { color: var(--text-2); font-size: 0.78rem; }
+    .stat.pass b { color: var(--success); }
+    .stat.fail b { color: var(--danger); }
+    .case {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .case .status { white-space: nowrap; font-weight: 600; }
+    .case.pass .status { color: var(--success); }
+    .case.fail .status { color: var(--danger); }
+    .case .detail { color: var(--text-2); font-size: 0.8rem; overflow-wrap: anywhere; }
+    .pending { color: var(--text-2); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Uji Mesin Vektorisasi — VE-1</h1>
+    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
+    <div class="summary" id="summary"><p class="pending">Memuat modul uji…</p></div>
+    <div id="cases"></div>
+  </div>
+  <script type="module">
+    import { runVectorEngineTests } from './vectorEngine.test.js';
+
+    const summary = document.getElementById('summary');
+    const cases = document.getElementById('cases');
+    let results;
+    try {
+      results = runVectorEngineTests();
+    } catch (error) {
+      summary.textContent = '';
+      const box = document.createElement('p');
+      box.className = 'pending';
+      box.textContent = 'Uji gagal dijalankan: ' + (error && error.message ? error.message : String(error));
+      summary.appendChild(box);
+      throw error;
+    }
+    summary.textContent = '';
+    for (const stat of [
+      { label: 'Total', value: results.total, cls: '' },
+      { label: 'Lulus', value: results.passed, cls: 'pass' },
+      { label: 'Gagal', value: results.failed, cls: 'fail' },
+    ]) {
+      const el = document.createElement('div');
+      el.className = 'stat ' + stat.cls;
+      const b = document.createElement('b');
+      b.textContent = String(stat.value);
+      const span = document.createElement('span');
+      span.textContent = stat.label;
+      el.appendChild(b);
+      el.appendChild(span);
+      summary.appendChild(el);
+    }
+    cases.textContent = '';
+    if (results.failures.length === 0) {
+      const ok = document.createElement('p');
+      ok.className = 'pending';
+      ok.textContent = 'Seluruh ' + results.total + ' asersi kasus lulus.';
+      cases.appendChild(ok);
+    } else {
+      for (const failure of results.failures) {
+        const row = document.createElement('div');
+        row.className = 'case fail';
+        const name = document.createElement('span');
+        name.textContent = failure.name;
+        const status = document.createElement('span');
+        status.className = 'status';
+        status.textContent = 'GAGAL';
+        const detail = document.createElement('div');
+        detail.className = 'detail';
+        detail.textContent = failure.error;
+        row.appendChild(name);
+        row.appendChild(status);
+        row.appendChild(detail);
+        cases.appendChild(row);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -34,7 +34,7 @@
       <section class="page" id="page-studio" aria-label="Studio">
 
         <div class="hero">
-          <p class="hero-eyebrow">Naze Vector MVP v0.1.0</p>
+          <p class="hero-eyebrow">Naze Vector v0.2.0</p>
           <h1 class="hero-title">Ubah gambar menjadi siluet vektor animasi</h1>
           <p class="hero-sub">Seluruh pemrosesan berjalan lokal di peramban Anda. Tanpa akun, tanpa unggahan ke server.</p>
           <div class="status-strip" id="feature-status-strip" aria-label="Status fitur"></div>
@@ -93,6 +93,23 @@
                   </div>
                 </div>
               </div>
+              <div class="card preview-card preview-card-wide">
+                <div class="preview-card-head">
+                  <h2 class="preview-card-title">Hasil Vektor (SVG)</h2>
+                  <span class="badge badge-ok">Vektorisasi lokal</span>
+                </div>
+                <div class="preview-stage" id="vector-stage">
+                  <div class="vector-output" id="vector-output" hidden></div>
+                  <div class="stage-empty" id="vector-empty">
+                    <p>Unggah gambar untuk melihat hasil vektor.</p>
+                  </div>
+                  <div class="stage-processing" id="vector-processing" hidden>
+                    <span class="spinner" aria-hidden="true"></span>
+                    <p>Memproses vektor…</p>
+                  </div>
+                </div>
+                <p class="vector-stats" id="vector-stats"></p>
+              </div>
             </div>
 
           </div>
@@ -132,10 +149,10 @@
                   <option value="sedang" selected>Sedang — seimbang</option>
                   <option value="tinggi">Tinggi — sangat sederhana</option>
                 </select>
-                <p class="field-note">Penyederhanaan path berlaku setelah mesin vektorisasi tersedia.</p>
+                <p class="field-note">Tingkat penyederhanaan mengontrol pengurangan titik kontur pada hasil SVG.</p>
               </div>
 
-              <p class="panel-note">Pratinjau saat ini adalah raster indikatif. Konversi ke path SVG ditandai sebagai belum diimplementasikan.</p>
+              <p class="panel-note">Pratinjau raster dan hasil vektor SVG dihitung lokal dari mask siluet. Ekspor XML untuk Alight Motion menyusul pada tahap berikutnya (lihat docs/SDD.md).</p>
             </section>
 
             <section class="card panel" aria-labelledby="animation-panel-title">
@@ -175,7 +192,7 @@
                 <button type="button" class="btn btn-ghost btn-compact" id="btn-restart">Ulangi</button>
               </div>
 
-              <p class="panel-note">Pratinjau animasi berjalan lokal di peramban. Konversi preset menjadi keyframe XML ditandai sebagai belum diimplementasikan.</p>
+              <p class="panel-note">Pratinjau animasi berjalan lokal di peramban pada pratinjau raster dan hasil vektor. Konversi preset menjadi keyframe XML ditandai sebagai belum diimplementasikan.</p>
             </section>
 
             <section class="card panel" aria-labelledby="export-panel-title">
@@ -207,7 +224,7 @@
                 <button type="button" class="alert-close" id="export-message-close" aria-label="Tutup pesan">&times;</button>
               </div>
 
-              <p class="panel-note">Ekspor XML belum diimplementasikan pada tahap ini. Kompatibilitas impor akan diklaim hanya setelah pembangkit XML tersedia dan lulus uji impor nyata di Alight Motion (lihat docs/SDD.md).</p>
+              <p class="panel-note">Ekspor XML belum diimplementasikan pada tahap ini. Vektorisasi kini berjalan nyata, namun generator XML Alight Motion masih menyusul. Kompatibilitas impor akan diklaim hanya setelah pembangkit XML tersedia dan lulus uji impor nyata di Alight Motion (lihat docs/SDD.md).</p>
             </section>
 
           </aside>
@@ -217,7 +234,7 @@
       <section class="page page-hidden" id="page-preset" aria-label="Preset">
         <div class="page-head">
           <h1 class="page-title">Preset Animasi</h1>
-          <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio. Penerapan preset ke keyframe Alight Motion akan tersedia setelah adapter XML diimplementasikan.</p>
+          <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio, pada pratinjau raster maupun hasil vektor. Penerapan preset ke keyframe Alight Motion akan tersedia setelah adapter XML diimplementasikan.</p>
         </div>
         <div class="preset-grid">
           <article class="card preset-card">
@@ -260,8 +277,8 @@
               <tbody>
                 <tr><td>Impor dan Normalisasi Gambar</td><td><span class="badge badge-ok">Tersedia</span></td><td>PNG, JPG, WebP; dinormalisasi hingga 1400 piksel.</td></tr>
                 <tr><td>Pemrosesan Siluet (raster)</td><td><span class="badge badge-ok">Tersedia</span></td><td>Ambang luminansi, mode gelap/terang, warna siluet.</td></tr>
-                <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas.</td></tr>
-                <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog VE-1, VE-2.</td></tr>
+                <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan).</td></tr>
+                <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas, pada raster dan vektor.</td></tr>
                 <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog AM-1; menunggu referensi terverifikasi.</td></tr>
                 <tr><td>Validasi XML</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog XV-1.</td></tr>
                 <tr><td>Ekspor XML</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog EX-1; tanpa klaim kompatibilitas.</td></tr>
@@ -286,7 +303,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.1.0 — MVP</span>
+        <span class="footer-version">v0.2.0 — vektorisasi SVG</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>

@@ -38,7 +38,9 @@ export function initExportPanel(store) {
       });
       return;
     }
-    const result = requestXmlExport();
+    // State dibaca dari store saat tombol ditekan; pipeline menghitung ulang
+    // mask dan vektor dari state terkini, tanpa hasil yang kedaluwarsa.
+    const result = requestXmlExport(state);
     store.set({
       exportMessage: {
         kind: result.ok ? 'success' : 'error',

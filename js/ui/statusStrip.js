@@ -3,8 +3,8 @@
 export const FEATURE_STATUS = [
   { label: 'Impor & Pratinjau Gambar', available: true },
   { label: 'Pratinjau Siluet Raster', available: true },
+  { label: 'Mesin Vektorisasi (SVG)', available: true },
   { label: 'Pratinjau Animasi Lokal', available: true },
-  { label: 'Mesin Vektorisasi (SVG)', available: false },
   { label: 'Adapter XML Alight Motion', available: false },
   { label: 'Ekspor XML', available: false },
 ];

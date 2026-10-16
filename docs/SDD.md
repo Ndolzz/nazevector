@@ -5,7 +5,7 @@ Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-16.
 
 ## 1. Ringkasan
 
-Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Mesin vektorisasi, adapter XML, validasi XML, dan ekspor ditandai secara eksplisit sebagai belum diimplementasikan.
+Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Adapter XML, validasi XML, dan ekspor tetap ditandai secara eksplisit sebagai belum diimplementasikan.
 
 ## 2. Hasil Audit (P0)
 
@@ -62,10 +62,10 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | RF-03 | Pratinjau gambar asli dengan metadata (nama, dimensi, ukuran) | Diimplementasikan |
 | RF-04 | Tombol ganti dan hapus gambar berfungsi penuh | Diimplementasikan |
 | RF-05 | Kontrol siluet (mode, warna, ambang) menghasilkan pratinjau siluet raster yang benar-benar dihitung lokal | Diimplementasikan (raster) |
-| RF-06 | Kontrol penyederhanaan path tersimpan di state, dengan keterangan bahwa efeknya berlaku setelah mesin vektor tersedia | Diimplementasikan (state) |
+| RF-06 | Kontrol penyederhanaan path memengaruhi jumlah titik kontur hasil vektorisasi | Diimplementasikan (VE-2) |
 | RF-07 | Preset animasi Silhouette Reveal, Scale Pulse, Rotation Motion dengan durasi dan intensitas, kontrol putar, jeda, ulangi | Diimplementasikan (pratinjau lokal) |
 | RF-08 | Panel ekspor: nama berkas, format target, status validasi, informasi kompatibilitas, pesan kesalahan yang jelas | Diimplementasikan (panel); ekspor ditandai belum tersedia |
-| RF-09 | Mesin vektorisasi (path SVG) | Belum diimplementasikan (VE-1) |
+| RF-09 | Mesin vektorisasi (path SVG) | Diimplementasikan (VE-1; uji 18/18 lulus, lihat bagian 7) |
 | RF-10 | Adapter XML Alight Motion | Belum diimplementasikan (AM-1) |
 | RF-11 | Validasi XML | Belum diimplementasikan (XV-1) |
 | RF-12 | Ekspor XML | Belum diimplementasikan (EX-1) |
@@ -89,7 +89,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/dom.js | Pembantu kueri DOM |
 | js/modules/imageImport.js | Impor dan normalisasi gambar (nyata) |
 | js/modules/silhouette.js | Komputasi mask siluet raster (nyata) |
-| js/modules/vectorEngine.js | Pembangkit path SVG (stub eksplisit) |
+| js/modules/vectorEngine.js | Vektorisasi mask menjadi path SVG tertutup: marching squares pada crack boundary + penyederhanaan RDP (nyata) |
 | js/modules/animation.js | Definisi preset dan mesin pratinjau animasi lokal (nyata) |
 | js/modules/amAdapter.js | Serializer XML Alight Motion (stub eksplisit) |
 | js/modules/xmlValidation.js | Validasi dokumen XML (stub eksplisit) |
@@ -102,8 +102,10 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/ui/animationPanel.js | Kontrol pengaturan animasi dan pemutaran |
 | js/ui/exportPanel.js | Panel ekspor dan pesan status |
 | js/ui/pages.js | Perutean lokal antar halaman |
+| tests/vectorEngine.test.js | Rangkaian uji murni mesin vektorisasi (18 kasus, tanpa DOM, dapat dijalankan di peramban) |
+| tests/index.html | Harness peramban untuk menjalankan rangkaian uji |
 
-Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau dirasterisasi. Saat VE-1 tersedia, vectorEngine mengubah mask menjadi VectorPathData (SVG), lalu animation menghasilkan AnimationClipData, amAdapter membuat XML, xmlValidation memverifikasi, dan exportManager mengunduh. Setiap tahap memancarkan pesan status yang jujur.
+Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau raster dirasterisasi. vectorEngine mengubah mask menjadi VectorPathData (SVG) yang ditampilkan sebagai pratinjau vektor beserta statistiknya; perubahan gambar, mode, ambang, penyederhanaan, dan warna memicu penghitungan ulang dari state terkini (lihat 7.3). Tahap berikutnya belum tersedia: animation menghasilkan AnimationClipData, amAdapter membuat XML, xmlValidation memverifikasi, dan exportManager mengunduh. Setiap tahap memancarkan pesan status yang jujur.
 
 ### 3.4 Kriteria penerimaan
 
@@ -120,26 +122,85 @@ Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke s
 
 ## 4. Batas implementasi tahap 1
 
-Diimplementasikan: desain, navigasi, unggah, pratinjau (asli + siluet raster), kontrol UI, state aplikasi, pratinjau animasi lokal.
+Diimplementasikan: desain, navigasi, unggah, pratinjau (asli + siluet raster + hasil vektor SVG), kontrol UI, state aplikasi, pratinjau animasi lokal, mesin vektorisasi dengan penyederhanaan bertingkat (VE-1, VE-2).
 
-Belum diimplementasikan (ditandai eksplisit di UI): mesin vektorisasi, pembangkit SVG, adapter XML, validasi XML, unduhan ekspor.
+Belum diimplementasikan (ditandai eksplisit di UI): adapter XML Alight Motion, validasi XML, unduhan ekspor.
 
 ## 5. Backlog
 
 | ID | Butir | Catatan teknis |
 |----|-------|----------------|
-| VE-1 | Mesin vektorisasi mask ke path SVG | Kandidat: marching squares untuk kontur + penyederhanaan Ramer-Douglas-Peucker; atau potrace-wasm (menambah dependensi, perlu justifikasi) |
-| VE-2 | Penyederhanaan path bertingkat | Hubungkan dengan kontrol "tingkat penyederhanaan" yang sudah tersimpan di state |
+| VE-1 | Mesin vektorisasi mask ke path SVG | Selesai (v0.2.0): marching squares pada crack boundary + RDP per kontur tertutup; uji 18/18 lulus (lihat 7) |
+| VE-2 | Penyederhanaan path bertingkat | Selesai (v0.2.0): toleransi rendah 0.3 px, sedang 1.5 px, tinggi 3.5 px; override tolerancePx didukung; terhubung ke kontrol state |
 | AM-1 | Adapter XML Alight Motion | Basis: alight-motion-docs komunitas; butuh verifikasi uji impor nyata sebelum klaim kompatibel |
 | AN-1 | Penerapan keyframe preset ke properti AM (scale, rotation, opacity) | Bergantung AM-1 |
 | XV-1 | Validasi XML (well-formedness, atribut wajib, referensi ID) | Jalankan sebelum unduhan |
 | EX-1 | Unduh .xml + proses unduhan multi-berkas bila diperlukan | Bergantung AM-1 dan XV-1 |
 | TS-1 | Uji impor nyata di Alight Motion (Android) | Bukti keberhasilan wajib sebelum klaim kompatibilitas apa pun |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
-| TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Perlu Node; tambahkan hanya jika dikelola |
+| TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.2.0): 18 uji murni mesin vektorisasi berjalan via tests/index.html di peramban tanpa Node; unit silhouette dan uji runtime peramban belum tercakup |
 
 ## 6. Catatan verifikasi
 
 - Lingkungan pengerjaan tidak memiliki Node.js; karena itu tidak ada build yang dapat dijalankan dan tidak ada uji runtime otomatis. Situs sengaja tidak menggunakan toolchain agar dapat diverifikasi langsung di peramban.
 - Verifikasi yang dijalankan: audit repositori melalui GitHub API, pemeriksaan sintaks statis seluruh modul JS, pemeriksaan keseimbangan tanda kurung CSS, dan peninjauan manual.
 - Uji lanjutan yang wajib: buka halaman di Chrome/Android, unggah PNG/JPG/WebP, geser kontrol, dan jalankan pratinjau animasi.
+
+## 7. Implementasi VE-1 (v0.2.0): vektorisasi mask siluet menjadi path SVG
+
+### 7.1 Cakupan
+
+VE-1 mengganti stub vectorEngine dengan mesin vektorisasi yang berfungsi: mask siluet biner (keluaran silhouette.js) diubah menjadi kumpulan kontur tertutup yang diserialisasi sebagai elemen path SVG dengan fill-rule evenodd. Tahap ini hanya bertanggung jawab atas geometri vektor yang siap dipakai modul animasi dan adapter XML. Adapter XML, validasi, ekspor, dan klaim kompatibilitas Alight Motion tetap di luar cakupan (AM-1, XV-1, EX-1, TS-1).
+
+### 7.2 Algoritma dan kontrak modul
+
+- Penelusuran kontur: marching squares pada crack boundary (grid sudut piksel) dengan aturan penerusan "belok kiri, lurus, belok kanan". Konvensi ini menjaga sisi dalam kontur selalu di kiri arah jalan dan memisahkan komponen yang bersentuhan diagonal (4-connectivity).
+- Peran kontur ditentukan dari luas bertanda (shoelace): kontur luar dan lubang dinormalisasi dengan orientasi berlawanan; SVG diemit dengan fill-rule evenodd sehingga lubang dan pulau di dalam lubang ter-render benar tanpa uji kontainmen.
+- Penyederhanaan: Ramer-Douglas-Peucker iteratif (berbasis tumpukan, bukan rekursif) per kontur tertutup dengan dua titik jangkar. Tingkat state (rendah/sedang/tinggi) dipetakan ke toleransi 0.3/1.5/3.5 px; parameter tolerancePx dapat diganti secara eksplisit; tingkat tak dikenal jatuh ke sedang.
+- Kontrak: vectorizeSilhouette(maskData, vectorSettings) menghasilkan VectorPathData { ok, empty, svg, width, height, pathCount, componentCount, vertexCount, tolerancePx, subpaths }. Mask kosong menghasilkan empty tanpa kesalahan; input tidak valid melempar Error dengan pesan berbahasa Indonesia. buildSvgDocument(vectorPathData, colorHex) membangun ulang dokumen SVG saat warna berubah tanpa menghitung ulang geometri; warna disanitasi (fallback #3B82F6).
+- Koordinat bulat pada sistem koordinat piksel mask; viewBox sesuai dimensi mask sehingga proporsi dan batas objek dipertahankan. Implementasi murni array tanpa DOM, tanpa dependensi eksternal, ringan untuk perangkat Android.
+
+### 7.3 Integrasi pipeline
+
+- previewPanel menambahkan kartu "Hasil Vektor (SVG)" dengan statistik komponen/kontur/titik. Perubahan gambar, mode, atau ambang menghitung ulang mask lalu vektor; perubahan penyederhanaan memvektorisasi ulang mask ter-cache; perubahan warna cukup membangun ulang SVG. Seluruh penghitungan membaca state terkini saat eksekusi (bukan saat penjadwalan) dan diberi debounce.
+- exportManager kini menjalankan tahap nyata (mask + vektorisasi) saat tombol ekspor ditekan, lalu gagal jujur di stub AM-1 dengan PipelineNotAvailableError; tidak ada berkas XML palsu yang dihasilkan.
+- statusStrip menandai "Mesin Vektorisasi (SVG)" sebagai tersedia; badge kompatibilitas dan strip status adapter XML tetap jujur.
+
+### 7.4 Hasil pengujian (dijalankan 2026-10-16 sebelum push)
+
+Rangkaian uji tests/vectorEngine.test.js (18 kasus murni tanpa DOM) lulus 18/18 di sandbox:
+
+1. Persegi eksak: 4 titik sudut, luas 25, satu komponen.
+2. Lingkaran: satu komponen, kontur valid.
+3. Cincin: kontur luar plus lubang internal dengan orientasi berlawanan.
+4. Dua komponen terpisah: dua kontur luar dengan luas masing-masing sesuai.
+5. Pulau di dalam lubang: tiga kontur (luar, lubang, luar pulau).
+6. Sentuhan diagonal: dua komponen terpisah (4-connectivity).
+7. Mask kosong: empty tanpa svg dan tanpa kesalahan.
+8-12. Lima varian input tidak valid (mask null, dimensi nol, dimensi bukan bilangan bulat, panjang mask tidak sesuai) melempar Error dengan pesan berbahasa Indonesia.
+13. Monotonisitas penyederhanaan: jumlah titik rendah >= sedang >= tinggi; toleransi per level sesuai; tingkat tak dikenal jatuh ke sedang.
+14. Override tolerancePx berlaku.
+15. Validitas struktural SVG (namespace, viewBox, atribut d path, warna, koordinat bulat dalam batas mask) pada pola mask deterministik 60x40.
+16. Sanitasi warna: masukan tidak valid (contoh payload skrip) jatuh ke warna default.
+17. Deterministik: hasil identik untuk input identik.
+18. Integrasi ekspor: kanvas berisi siluet gelap menghasilkan kegagalan jujur di AM-1 dengan pesan adapter (bukti tahap mask dan vektor lulus); siluet kosong menghasilkan pesan "tidak ada siluet".
+
+Verifikasi tambahan sebelum push: kompilasi sintaks 19 berkas JS lulus; keseimbangan tag index.html dan tests/index.html; keseimbangan kurung main.css (158/158).
+
+### 7.5 Keterbatasan
+
+- Uji dijalankan pada sandbox tanpa DOM dan tanpa peramban; runtime peramban (pemuatan modul, rendering SVG, interaksi panel pratinjau, Chrome/Android) belum diuji dan wajib diverifikasi manual.
+- Validitas SVG diverifikasi struktural (regex dan batas koordinat), bukan parsing DOM penuh; DOMParser tidak tersedia di sandbox.
+- Batas performa pada perangkat Android nyata belum diukur; algoritma bekerja O(piksel) dengan himpunan kunci tepi, pada gambar ternormalisasi maksimum 1400 px.
+- previewPanel dan exportPanel diverifikasi lewat kompilasi sintaks serta peninjauan kode, bukan uji runtime.
+- Rangkaian uji harus dijalankan ulang di peramban melalui tests/index.html sebelum klaim yang lebih luas.
+
+### 7.6 Traceability
+
+| Backlog / Kebutuhan | Kewajiban | Bukti | Status |
+|---------------------|-----------|-------|--------|
+| VE-1 | Mesin vektorisasi mask ke path SVG | js/modules/vectorEngine.js; uji 18/18 (7.4) | Selesai |
+| VE-2 | Penyederhanaan bertingkat terhubung ke kontrol state | Uji monotonisitas dan override; previewPanel memvektorisasi ulang saat tingkat berubah | Selesai |
+| RF-09 | Mesin vektorisasi (path SVG) | 7.2-7.4 | Diimplementasikan |
+| RF-06 | Kontrol penyederhanaan berpengaruh nyata | Uji monotonisitas (7.4 kasus 13-14) | Diimplementasikan |
+| TS-2 | Uji otomatis ringan | tests/vectorEngine.test.js + tests/index.html (peramban, tanpa Node) | Terlayani sebagian; unit silhouette dan uji runtime peramban belum tercakup |
