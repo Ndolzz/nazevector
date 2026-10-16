@@ -5,7 +5,7 @@ Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-16.
 
 ## 1. Ringkasan
 
-Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Adapter XML, validasi XML, dan ekspor tetap ditandai secara eksplisit sebagai belum diimplementasikan.
+Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Adapter XML, validasi XML, dan ekspor tetap ditandai secara eksplisit sebagai belum diimplementasikan.
 
 ## 2. Hasil Audit (P0)
 
@@ -30,7 +30,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 
 ### 2.3 Riset format XML Alight Motion
 
-- Alight Creative tidak mempublikasikan spesifikasi resmi format XML proyek/preset. Klaim kompatibilitas tidak dapat didasarkan pada dokumentasi resmi.
+- Alight Creative tidak memublikasikan spesifikasi resmi format XML proyek/preset. Klaim kompatibilitas tidak dapat didasarkan pada dokumentasi resmi.
 - Sumber dokumentasi komunitas paling terstruktur: https://github.com/kuchingneko28/alight-motion-docs (dibangun dari dekompilasi APK; secara eksplisit tidak berafiliasi dengan Alight Creative). Cakupan: scene XML, nilai bawaan, alokasi ID, penamaan layer, elemen, efek, properti/keyframe, dan media.
 - Artikel-artikel blog komunitas hanya menjelaskan alur impor (umumnya di Android), bukan struktur XML.
 - Dukungan impor XML penuh umumnya ada di Android; iOS terbatas (sering memerlukan solusi tidak langsung).
@@ -73,7 +73,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 ### 3.2 Kebutuhan non-fungsional
 
 - NFR-01: Responsif untuk layar HP Android dan desktop.
-- NFR-02: Identitas visual biru gelap dan biru elektrik, tipografi bersih, panel membulat, kontras nyaman, tanpa emoji dekoratif.
+- NFR-02: Identitas visual "Imperfect by Design" (v0.3.0, DS-1): latar krem #F7F6F0 bergaris grid tipis, tipografi hitam editorial tebal, outline hitam tegas pada kartu dan tombol, bayangan solid pendek, aksen konsisten kuning #FFC531 / oranye #FF7A29 / ungu #8C6CFF / hijau #3BB05C sebagai penanda fungsi, sudut membulat secukupnya, tanpa emoji dekoratif. Identitas biru gelap v0.2.0 digantikan sepenuhnya.
 - NFR-03: Tanpa dependensi eksternal (CSS/JS lokal sepenuhnya).
 - NFR-04: Menghormati preferensi prefers-reduced-motion.
 - NFR-05: Keterampilan aksesibilitas dasar: label kontrol, status aria-current pada navigasi, tombol asli untuk semua aksi.
@@ -137,6 +137,7 @@ Belum diimplementasikan (ditandai eksplisit di UI): adapter XML Alight Motion, v
 | XV-1 | Validasi XML (well-formedness, atribut wajib, referensi ID) | Jalankan sebelum unduhan |
 | EX-1 | Unduh .xml + proses unduhan multi-berkas bila diperlukan | Bergantung AM-1 dan XV-1 |
 | TS-1 | Uji impor nyata di Alight Motion (Android) | Bukti keberhasilan wajib sebelum klaim kompatibilitas apa pun |
+| DS-1 | Redesign visual "Imperfect by Design" | Selesai (v0.3.0): lihat bagian 8 |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
 | TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.2.0): 18 uji murni mesin vektorisasi berjalan via tests/index.html di peramban tanpa Node; unit silhouette dan uji runtime peramban belum tercakup |
 
@@ -200,7 +201,69 @@ Verifikasi tambahan sebelum push: kompilasi sintaks 19 berkas JS lulus; keseimba
 | Backlog / Kebutuhan | Kewajiban | Bukti | Status |
 |---------------------|-----------|-------|--------|
 | VE-1 | Mesin vektorisasi mask ke path SVG | js/modules/vectorEngine.js; uji 18/18 (7.4) | Selesai |
-| VE-2 | Penyederhanaan bertingkat terhubung ke kontrol state | Uji monotonisitas dan override; previewPanel memvektorisasi ulang saat tingkat berubah | Selesai |
+| VE-2 | Penyederhanaan bertingkat terhubung ke kontrol state | Uji monotonisasi dan override; previewPanel memvektorisasi ulang saat tingkat berubah | Selesai |
 | RF-09 | Mesin vektorisasi (path SVG) | 7.2-7.4 | Diimplementasikan |
-| RF-06 | Kontrol penyederhanaan berpengaruh nyata | Uji monotonisitas (7.4 kasus 13-14) | Diimplementasikan |
+| RF-06 | Kontrol penyederhanaan berpengaruh nyata | Uji monotonisasi (7.4 kasus 13-14) | Diimplementasikan |
 | TS-2 | Uji otomatis ringan | tests/vectorEngine.test.js + tests/index.html (peramban, tanpa Node) | Terlayani sebagian; unit silhouette dan uji runtime peramban belum tercakup |
+
+## 8. Implementasi DS-1 (v0.3.0): redesign visual "Imperfect by Design"
+
+### 8.1 Tujuan dan ruang lingkup
+
+DS-1 merombak identitas visual situs menjadi khas, modern, kreatif, dan profesional dengan arah desain "Imperfect by Design" (karakter studio kreatif eksperimental), berdasarkan referensi visual yang diberikan pengguna tanpa menyalin nama, logo, teks, atau ilustrasi referensi secara persis. Ruang lingkup terbatas pada presentasi: index.html dan styles/main.css. Perilaku pipeline, kontrak modul, ID DOM, struktur state, algoritma marching squares dan Ramer-Douglas-Peucker, serta rangkaian uji tidak boleh berubah. Adapter XML tetap stub dan statusnya tetap ditampilkan secara jujur.
+
+### 8.2 Keputusan desain
+
+- Token desain baru di styles/main.css: latar krem #F7F6F0 dengan grid tipis 32 px kontras rendah, permukaan putih #FFFFFF, tinta hitam #14120D untuk teks dan outline, aksen kuning #FFC531, oranye #FF7A29, ungu #8C6CFF, hijau #3BB05C, merah #E5484D untuk status kesalahan. Radius 8/12/16 px (tidak semua elemen berbentuk pil). Bayangan solid pendek (4px 4px 0) dengan interaksi geser pada hover/active. Identitas biru gelap v0.2.0 digantikan sepenuhnya; color-scheme berubah dari dark ke light.
+- Tipografi editorial: bobot tebal (hero hingga 800), ukuran hero dengan clamp 2,1-3,3 rem, letter-spacing rapat, sorotan kuning pada penekanan judul hero.
+- Aksen warna sebagai penanda fungsi: kuning untuk panel vektor dan aksi utama, ungu untuk panel animasi dan indikator fokus keyboard, oranye untuk panel ekspor dan status belum tersedia, hijau untuk status tersedia, merah untuk kesalahan. Kartu pratinjau diberi penanda titik warna sesuai fungsi (impor hijau, siluet ungu, vektor kuning).
+- Hero baru: eyebrow versi, judul "Ubah gambar menjadi vektor beranimasi.", deskripsi fungsi produk, tombol "Buka Studio" dan "Lihat Preset" (memakai data-nav yang sudah didukung pages.js tanpa perubahan JavaScript), tiga label fitur (Siluet Vektor, Animasi Keyframe, XML Alight Motion) dengan label jujur "menyusul" pada XML karena adapter masih stub, plus strip status fitur yang sudah ada.
+- Ilustrasi produk berupa satu SVG inline statis (role img dengan aria-label) yang menggambarkan alur Gambar sumber → Siluet → Kontur SVG → Linimasa animasi: outline hitam, panel putih, aksen kuning/oranye/ungu/hijau, keyframe berbentuk berlian, dan playhead merah. Ilustrasi ini bergaya flat, tidak menampilkan hasil pemrosesan palsu, dan tajam di berbagai resolusi.
+- Marka brand geometris abstrak (kotak kuning, segitiga putih ber-outline, lingkaran ungu, node hijau berlian), bukan huruf N.
+- Studio disusun ulang secara hierarkis menjadi lima langkah bernomor (chip 01-05): (01) impor gambar dan pratinjau sumber, (02) pratinjau siluet dan hasil vektor, (03) panel kontrol vektor, (04) panel preset animasi, (05) panel ekspor dan status. Urutan DOM dan seluruh ID DOM dipertahankan; kartu "Gambar Asli" dipindahkan ke langkah 01 dan preview-grid pada langkah 02 menjadi satu kolom — perubahan penampung ini tidak menyentuh kontrak modul karena previewPanel hanya membaca ID elemen.
+- Teksur grain hanya aksen halus: satu lapisan feTurbulence data-URI dengan opasitas 0,08 pada hero, tidak mengganggu keterbacaan.
+- Animasi: tidak ada animasi baru yang ditambahkan; keyframes preset (nv-reveal, nv-pulse, nv-rotation) dan variabel --nv-i/--nv-deg dipertahankan persis untuk animation.js; aturan prefers-reduced-motion tetap melumpuhkan seluruh transisi dan animasi dekoratif.
+- Aksesibilitas: focus-visible global 3 px ungu, label kontrol dipertahankan, kontras teks utama #14120D dan sekunder #5A564B pada latar terang memenuhi ambang keterbacaan.
+
+### 8.3 Berkas yang berubah
+
+- index.html: struktur hero, ilustrasi, langkah studio 01-05, markup panel, halaman Preset dan Tentang, versi v0.3.0. Seluruh ID DOM dan hook perutean dipertahankan.
+- styles/main.css: ditulis ulang penuh dengan sistem desain baru; keyframes dan variabel animasi lama dipertahankan.
+- docs/SDD.md dan README.md: dokumentasi redesign ini.
+- Tidak ada berkas JavaScript yang berubah.
+
+### 8.4 Risiko regresi dan mitigasi
+
+1. Risiko: JS merujuk ID/kelas yang hilang saat HTML ditulis ulang. Mitigasi: inventaris seluruh pemilih qs/qsa dari modul UI diverifikasi terhadap HTML baru secara otomatis; hasil: nol ID hilang, dua radio vector-mode, tujuh data-nav, tiga section .page.
+2. Risiko: CSS baru lupa mendefinisikan kelas/keyframes yang direferensikan JS. Mitigasi: pemeriksaan otomatis keberadaan 20 kelas terpakai (termasuk .nav-link.active dan .preset-tile.active), empat keyframes, dua variabel animasi, dan aturan prefers-reduced-motion; seluruhnya ditemukan.
+3. Risiko: perilaku pipeline berubah. Mitigasi: tidak ada berkas js/ yang diubah; 18 uji mesin vektorisasi dijalankan ulang dan lulus 18/18; sintaks seluruh 19 berkas JS diverifikasi ulang.
+4. Risiko: overflow horizontal pada layar sempit. Mitigasi: layout grid satu kolom pada <=960 px, tidak ada lebar tetap di atas 400 px di CSS, grid template memakai minmax(0,1fr). Uji visual peramban aktual belum dijalankan (lihat 8.6).
+
+### 8.5 Kriteria penerimaan dan hasil verifikasi (dijalankan 2026-10-16 sebelum push)
+
+| ID | Kriteria | Hasil |
+|----|----------|-------|
+| AC-01 | Identitas visual: latar krem ber-grid, tipografi editorial tebal, outline hitam, palet aksen konsisten | Terpenuhi secara struktural: token dan komponen terverifikasi ada di CSS; render visual peramban belum diuji |
+| AC-02 | Responsivitas desktop dan Android tanpa overflow horizontal | Struktur responsif terverifikasi (satu kolom <=960 px, tanpa lebar tetap >400 px); uji viewport peramban aktual belum tersedia di lingkungan ini |
+| AC-03 | Integritas fitur: impor, siluet, penyederhanaan, warna, pratinjau SVG, preset tetap berfungsi | Hook DOM/event seluruh kontrol terverifikasi utuh (nol ID hilang); tidak ada perubahan JS; uji interaksi runtime peramban belum dijalankan |
+| AC-04 | Integritas SVG: keluaran vektor, lubang kontur, batas koordinat, statistik tidak rusak | Terpenuhi: uji mesin vektorisasi 18/18 lulus dijalankan ulang; kelas vector-output/vector-stats dan container svg terdefinisi |
+| AC-05 | Integritas ekspor: keterbatasan adapter XML tampil jujur, tanpa XML palsu | Terpenuhi: label "menyusul" di hero, panel-note dan uji integrasi kegagalan jujur AM-1 tetap lulus |
+| AC-06 | Aksesibilitas: label, fokus keyboard terlihat, kontras memadai | Terpenuhi secara struktural: focus-visible 3 px, label dipertahankan, pasangan warna teks/latar berkontras tinggi; audit pembaca layar belum dijalankan |
+| AC-07 | Performa: tanpa dependensi berat atau animasi tidak perlu | Terpenuhi: nol dependensi baru, nol animasi baru, grain satu lapisan statis |
+| AC-08 | Tidak ada regresi: pengujian sebelumnya dipertahankan dan dijalankan ulang | Terpenuhi: 18/18 uji lulus ulang; sintaks 19/19 berkas JS lulus; keseimbangan kurung CSS 192/192; tag HTML seimbang |
+| AC-09 | Dokumentasi SDD dan README diperbarui sesuai perubahan aktual | Terpenuhi: bagian 8 SDD ini, NFR-02, backlog DS-1, README v0.3.0 |
+
+### 8.6 Keterbatasan
+
+- Lingkungan pengerjaan tidak memiliki peramban; render visual, layout pada viewport sempit/lebar yang sebenarnya, interaksi kontrol, dan animasi runtime (Chrome/Android) belum diuji dan wajib diverifikasi manual sebelum klaim lebih lanjut.
+- Verifikasi aksesibilitas bersifat struktural (label, fokus, kontras), bukan audit pembaca layar.
+- Uji interaksi drag-and-drop dan unggahan berkas memerlukan peramban; tidak dapat dijalankan di sandbox.
+
+### 8.7 Traceability
+
+| Backlog / Kebutuhan | Kewajiban | Bukti | Status |
+|---------------------|-----------|-------|--------|
+| DS-1 | Redesign visual "Imperfect by Design" | index.html + styles/main.css v0.3.0; verifikasi 8.5 | Selesai |
+| NFR-02 | Identitas visual baru terdefinisi sebagai token | styles/main.css :root; SDD 8.2 | Diimplementasikan |
+| RF-01 | Navigasi tetap berfungsi | data-nav utuh (7 referensi), .page dan .nav-link.active terverifikasi | Tidak berubah |
+| AC-04 | Keluaran SVG tidak rusak | Uji 18/18 lulus ulang (7.4) | Terpenuhi |

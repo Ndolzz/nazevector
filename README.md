@@ -2,7 +2,11 @@
 
 Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dengan target ekspor XML untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban; tidak ada akun, backend, atau API berbayar.
 
-Status: v0.2.0 — antarmuka lengkap plus mesin vektorisasi SVG (backlog VE-1 dan VE-2 selesai). Adapter XML dan ekspor masih stub eksplisit.
+Status: v0.3.0 — redesign visual "Imperfect by Design" (backlog DS-1 selesai) di atas antarmuka lengkap dan mesin vektorisasi SVG (backlog VE-1 dan VE-2 selesai). Adapter XML dan ekspor masih stub eksplisit.
+
+## Identitas visual (v0.3.0)
+
+Situs menggunakan sistem desain "Imperfect by Design": latar krem bergaris grid tipis, tipografi hitam editorial tebal, outline hitam tegas pada kartu dan tombol, bayangan solid pendek, serta aksen konsisten kuning, oranye, ungu, dan hijau sebagai penanda fungsi (bukan dekorasi acak). Tidak ada dependensi CSS/JS eksternal; seluruh identitas diimplementasikan di `styles/main.css`. Redesign ini hanya menyentuh presentasi — perilaku pipeline, kontrak modul, dan hasil SVG tidak berubah.
 
 ## Status fitur
 

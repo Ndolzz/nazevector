@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Naze Vector — ubah gambar menjadi siluet vektor animasi untuk Alight Motion." />
-  <meta name="color-scheme" content="dark" />
+  <meta name="color-scheme" content="light" />
   <title>Naze Vector — Studio Siluet Vektor</title>
   <link rel="stylesheet" href="styles/main.css" />
 </head>
@@ -14,9 +14,11 @@
     <header class="site-header">
       <div class="header-inner">
         <a class="brand" href="#" data-nav="studio" aria-label="Naze Vector — ke Studio">
-          <svg class="brand-mark" viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-            <path d="M16 3 L29 26 L3 26 Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" />
-            <circle cx="16" cy="19" r="4.2" fill="currentColor" />
+          <svg class="brand-mark" viewBox="0 0 34 34" width="30" height="30" aria-hidden="true">
+            <rect x="2" y="2" width="30" height="30" rx="9" fill="#FFC531" stroke="#14120D" stroke-width="2.4" />
+            <path d="M9.5 24.5 L17 10 L24.5 24.5 Z" fill="#FFFFFF" stroke="#14120D" stroke-width="2.2" stroke-linejoin="round" />
+            <circle cx="17" cy="20" r="3.4" fill="#8C6CFF" stroke="#14120D" stroke-width="1.8" />
+            <rect x="21.5" y="8.5" width="5" height="5" fill="#3BB05C" stroke="#14120D" stroke-width="1.8" transform="rotate(45 24 11)" />
           </svg>
           <span class="brand-name">Naze<span>Vector</span></span>
         </a>
@@ -25,7 +27,7 @@
           <button type="button" class="nav-link" data-nav="preset">Preset</button>
           <button type="button" class="nav-link" data-nav="tentang">Tentang</button>
         </nav>
-        <button type="button" class="btn btn-primary btn-compact" data-nav="studio">Mulai Menggunakan Aplikasi</button>
+        <button type="button" class="btn btn-primary btn-compact" data-nav="studio">Buka Studio</button>
       </div>
     </header>
 
@@ -34,90 +36,167 @@
       <section class="page" id="page-studio" aria-label="Studio">
 
         <div class="hero">
-          <p class="hero-eyebrow">Naze Vector v0.2.0</p>
-          <h1 class="hero-title">Ubah gambar menjadi siluet vektor animasi</h1>
-          <p class="hero-sub">Seluruh pemrosesan berjalan lokal di peramban Anda. Tanpa akun, tanpa unggahan ke server.</p>
+          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.3.0</span></p>
+          <h1 class="hero-title">Ubah gambar menjadi <em>vektor beranimasi</em>.</h1>
+          <p class="hero-sub">Ubah gambar menjadi siluet vektor, jelajahi gaya animasi, dan siapkan karya untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban Anda — tanpa akun, tanpa unggahan ke server.</p>
+          <div class="hero-cta">
+            <button type="button" class="btn btn-primary" data-nav="studio">Buka Studio</button>
+            <button type="button" class="btn btn-secondary" data-nav="preset">Lihat Preset</button>
+          </div>
+          <ul class="hero-tags">
+            <li class="hero-tag"><i class="tag-dot tag-dot-green" aria-hidden="true"></i>Siluet Vektor</li>
+            <li class="hero-tag"><i class="tag-dot tag-dot-purple" aria-hidden="true"></i>Animasi Keyframe</li>
+            <li class="hero-tag"><i class="tag-dot tag-dot-orange" aria-hidden="true"></i>XML Alight Motion <span class="tag-note">menyusul</span></li>
+          </ul>
           <div class="status-strip" id="feature-status-strip" aria-label="Status fitur"></div>
+
+          <svg class="hero-illo" viewBox="0 0 980 208" role="img" aria-label="Ilustrasi alur kerja Naze Vector: gambar sumber menjadi siluet, lalu kontur SVG, lalu linimasa animasi dengan keyframe berlian.">
+            <g transform="translate(10,8)">
+              <rect x="0" y="0" width="190" height="148" rx="12" fill="#FFFFFF" stroke="#14120D" stroke-width="2.5" />
+              <circle cx="148" cy="36" r="15" fill="#FFC531" stroke="#14120D" stroke-width="2.5" />
+              <path d="M10 118 C38 74, 72 72, 96 112 C118 86, 148 90, 172 118 L172 138 L10 138 Z" fill="#3BB05C" stroke="#14120D" stroke-width="2.5" stroke-linejoin="round" />
+              <line x1="10" y1="138" x2="172" y2="138" stroke="#14120D" stroke-width="2.5" />
+            </g>
+            <g transform="translate(260,8)">
+              <rect x="0" y="0" width="190" height="148" rx="12" fill="#FFFFFF" stroke="#14120D" stroke-width="2.5" />
+              <circle cx="148" cy="36" r="15" fill="#14120D" />
+              <path d="M10 118 C38 74, 72 72, 96 112 C118 86, 148 90, 172 118 L172 138 L10 138 Z" fill="#14120D" />
+            </g>
+            <g transform="translate(510,8)">
+              <rect x="0" y="0" width="190" height="148" rx="12" fill="#FFFFFF" stroke="#14120D" stroke-width="2.5" />
+              <path d="M10 118 C38 74, 72 72, 96 112 C118 86, 148 90, 172 118 L172 138 L10 138 Z" fill="#FFC531" stroke="#14120D" stroke-width="2.5" stroke-linejoin="round" />
+              <circle cx="95" cy="106" r="10" fill="#FFFFFF" stroke="#14120D" stroke-width="2.5" />
+              <rect x="5.5" y="113.5" width="9" height="9" fill="#3BB05C" stroke="#14120D" stroke-width="2" />
+              <rect x="91.5" y="107.5" width="9" height="9" fill="#3BB05C" stroke="#14120D" stroke-width="2" />
+              <rect x="167.5" y="113.5" width="9" height="9" fill="#3BB05C" stroke="#14120D" stroke-width="2" />
+            </g>
+            <g transform="translate(760,8)">
+              <rect x="0" y="0" width="190" height="148" rx="12" fill="#FFFFFF" stroke="#14120D" stroke-width="2.5" />
+              <line x1="18" y1="48" x2="172" y2="48" stroke="#CFC9B8" stroke-width="2" />
+              <line x1="18" y1="84" x2="172" y2="84" stroke="#CFC9B8" stroke-width="2" />
+              <line x1="18" y1="120" x2="172" y2="120" stroke="#CFC9B8" stroke-width="2" />
+              <rect x="-5.5" y="-5.5" width="11" height="11" transform="translate(52,48) rotate(45)" fill="#8C6CFF" stroke="#14120D" stroke-width="2" />
+              <rect x="-5.5" y="-5.5" width="11" height="11" transform="translate(112,48) rotate(45)" fill="#3BB05C" stroke="#14120D" stroke-width="2" />
+              <rect x="-5.5" y="-5.5" width="11" height="11" transform="translate(60,84) rotate(45)" fill="#FF7A29" stroke="#14120D" stroke-width="2" />
+              <rect x="-5.5" y="-5.5" width="11" height="11" transform="translate(140,84) rotate(45)" fill="#8C6CFF" stroke="#14120D" stroke-width="2" />
+              <rect x="-5.5" y="-5.5" width="11" height="11" transform="translate(96,120) rotate(45)" fill="#FF7A29" stroke="#14120D" stroke-width="2" />
+              <line x1="96" y1="26" x2="96" y2="134" stroke="#E5484D" stroke-width="2.5" />
+              <polygon points="96,16 89,27 103,27" fill="#E5484D" stroke="#14120D" stroke-width="1.5" stroke-linejoin="round" />
+            </g>
+            <g stroke="#14120D" stroke-width="3" fill="#14120D">
+              <line x1="212" y1="82" x2="240" y2="82" />
+              <polygon points="252,82 240,75 240,89" stroke="none" />
+              <line x1="462" y1="82" x2="490" y2="82" />
+              <polygon points="502,82 490,75 490,89" stroke="none" />
+              <line x1="712" y1="82" x2="740" y2="82" />
+              <polygon points="752,82 740,75 740,89" stroke="none" />
+            </g>
+            <g fill="#14120D" font-size="12" font-weight="700" letter-spacing="1.2" text-anchor="middle">
+              <text x="105" y="186">GAMBAR SUMBER</text>
+              <text x="355" y="186">SILUET</text>
+              <text x="605" y="186">KONTUR SVG</text>
+              <text x="855" y="186">LINIMASA ANIMASI</text>
+            </g>
+          </svg>
         </div>
 
         <div class="workspace">
           <div class="workspace-main">
 
-            <div class="card upload-card" id="upload-zone" tabindex="0" role="button"
-              aria-label="Unggah gambar: klik atau seret dan letakkan berkas di sini">
-              <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
-                <path d="M12 16 V5 M7.5 9.5 L12 5 L16.5 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M4.5 15.5 V18 A1.7 1.7 0 0 0 6.2 19.7 H17.8 A1.7 1.7 0 0 0 19.5 18 V15.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-              </svg>
-              <p class="upload-title">Klik untuk memilih gambar</p>
-              <p class="upload-sub">atau seret dan letakkan berkas di sini</p>
-              <p class="upload-formats">PNG, JPG, WebP — maksimal 15 MB</p>
-            </div>
-            <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" hidden />
-
-            <div class="import-alert" id="import-alert" hidden>
-              <span id="import-alert-text"></span>
-              <button type="button" class="alert-close" id="import-alert-close" aria-label="Tutup pesan kesalahan">&times;</button>
-            </div>
-
-            <div class="preview-toolbar" id="preview-toolbar">
-              <div class="preview-meta" id="preview-meta">Belum ada gambar.</div>
-              <div class="preview-actions">
-                <button type="button" class="btn btn-ghost btn-compact" id="btn-replace">Ganti Gambar</button>
-                <button type="button" class="btn btn-danger btn-compact" id="btn-clear">Hapus Gambar</button>
+            <section class="studio-step" aria-labelledby="step-import-title">
+              <div class="studio-step-head">
+                <span class="step-chip" aria-hidden="true">01</span>
+                <h2 class="studio-step-title" id="step-import-title">Impor gambar &amp; pratinjau sumber</h2>
               </div>
-            </div>
 
-            <div class="preview-grid">
-              <div class="card preview-card">
+              <div class="card upload-card" id="upload-zone" tabindex="0" role="button"
+                aria-label="Unggah gambar: klik atau seret dan letakkan berkas di sini">
+                <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+                  <path d="M12 16 V5 M7.5 9.5 L12 5 L16.5 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M4.5 15.5 V18 A1.7 1.7 0 0 0 6.2 19.7 H17.8 A1.7 1.7 0 0 0 19.5 18 V15.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                <p class="upload-title">Klik untuk memilih gambar</p>
+                <p class="upload-sub">atau seret dan letakkan berkas di sini</p>
+                <p class="upload-formats">PNG, JPG, WebP — maksimal 15 MB</p>
+              </div>
+              <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp" hidden />
+
+              <div class="import-alert" id="import-alert" hidden>
+                <span id="import-alert-text"></span>
+                <button type="button" class="alert-close" id="import-alert-close" aria-label="Tutup pesan kesalahan">&times;</button>
+              </div>
+
+              <div class="preview-toolbar" id="preview-toolbar">
+                <div class="preview-meta" id="preview-meta">Belum ada gambar.</div>
+                <div class="preview-actions">
+                  <button type="button" class="btn btn-secondary btn-compact" id="btn-replace">Ganti Gambar</button>
+                  <button type="button" class="btn btn-danger btn-compact" id="btn-clear">Hapus Gambar</button>
+                </div>
+              </div>
+
+              <div class="card preview-card preview-card-source">
                 <div class="preview-card-head">
-                  <h2 class="preview-card-title">Gambar Asli</h2>
+                  <h2 class="preview-card-title"><i class="card-dot card-dot-green" aria-hidden="true"></i>Gambar Asli</h2>
+                  <span class="badge badge-ok">Impor lokal</span>
                 </div>
                 <div class="preview-stage" id="original-stage">
                   <img id="original-preview" alt="Pratinjau gambar asli" hidden />
                 </div>
               </div>
-              <div class="card preview-card">
-                <div class="preview-card-head">
-                  <h2 class="preview-card-title">Hasil Siluet</h2>
-                  <span class="badge badge-pending">Pratinjau raster</span>
+            </section>
+
+            <section class="studio-step" aria-labelledby="step-preview-title">
+              <div class="studio-step-head">
+                <span class="step-chip" aria-hidden="true">02</span>
+                <h2 class="studio-step-title" id="step-preview-title">Pratinjau siluet &amp; hasil vektor</h2>
+              </div>
+
+              <div class="preview-grid">
+                <div class="card preview-card">
+                  <div class="preview-card-head">
+                    <h2 class="preview-card-title"><i class="card-dot card-dot-purple" aria-hidden="true"></i>Hasil Siluet</h2>
+                    <span class="badge badge-ok">Raster lokal</span>
+                  </div>
+                  <div class="preview-stage" id="silhouette-stage">
+                    <canvas id="silhouette-canvas" hidden></canvas>
+                    <div class="stage-empty" id="silhouette-empty">
+                      <p>Unggah gambar untuk melihat pratinjau siluet.</p>
+                    </div>
+                    <div class="stage-processing" id="silhouette-processing" hidden>
+                      <span class="spinner" aria-hidden="true"></span>
+                      <p>Memproses siluet…</p>
+                    </div>
+                  </div>
                 </div>
-                <div class="preview-stage" id="silhouette-stage">
-                  <canvas id="silhouette-canvas" hidden></canvas>
-                  <div class="stage-empty" id="silhouette-empty">
-                    <p>Unggah gambar untuk melihat pratinjau siluet.</p>
+                <div class="card preview-card preview-card-wide">
+                  <div class="preview-card-head">
+                    <h2 class="preview-card-title"><i class="card-dot card-dot-yellow" aria-hidden="true"></i>Hasil Vektor (SVG)</h2>
+                    <span class="badge badge-ok">Vektorisasi lokal</span>
                   </div>
-                  <div class="stage-processing" id="silhouette-processing" hidden>
-                    <span class="spinner" aria-hidden="true"></span>
-                    <p>Memproses siluet…</p>
+                  <div class="preview-stage" id="vector-stage">
+                    <div class="vector-output" id="vector-output" hidden></div>
+                    <div class="stage-empty" id="vector-empty">
+                      <p>Unggah gambar untuk melihat hasil vektor.</p>
+                    </div>
+                    <div class="stage-processing" id="vector-processing" hidden>
+                      <span class="spinner" aria-hidden="true"></span>
+                      <p>Memproses vektor…</p>
+                    </div>
                   </div>
+                  <p class="vector-stats" id="vector-stats"></p>
                 </div>
               </div>
-              <div class="card preview-card preview-card-wide">
-                <div class="preview-card-head">
-                  <h2 class="preview-card-title">Hasil Vektor (SVG)</h2>
-                  <span class="badge badge-ok">Vektorisasi lokal</span>
-                </div>
-                <div class="preview-stage" id="vector-stage">
-                  <div class="vector-output" id="vector-output" hidden></div>
-                  <div class="stage-empty" id="vector-empty">
-                    <p>Unggah gambar untuk melihat hasil vektor.</p>
-                  </div>
-                  <div class="stage-processing" id="vector-processing" hidden>
-                    <span class="spinner" aria-hidden="true"></span>
-                    <p>Memproses vektor…</p>
-                  </div>
-                </div>
-                <p class="vector-stats" id="vector-stats"></p>
-              </div>
-            </div>
+            </section>
 
           </div>
 
           <aside class="workspace-side">
 
-            <section class="card panel" aria-labelledby="vector-panel-title">
-              <h2 class="panel-title" id="vector-panel-title">Pengaturan Vektor</h2>
+            <section class="card panel panel-vector" aria-labelledby="vector-panel-title">
+              <div class="panel-head">
+                <span class="step-chip" aria-hidden="true">03</span>
+                <h2 class="panel-title" id="vector-panel-title">Pengaturan Vektor</h2>
+              </div>
 
               <div class="field">
                 <span class="field-label" id="vector-mode-label">Mode siluet</span>
@@ -155,8 +234,11 @@
               <p class="panel-note">Pratinjau raster dan hasil vektor SVG dihitung lokal dari mask siluet. Ekspor XML untuk Alight Motion menyusul pada tahap berikutnya (lihat docs/SDD.md).</p>
             </section>
 
-            <section class="card panel" aria-labelledby="animation-panel-title">
-              <h2 class="panel-title" id="animation-panel-title">Pengaturan Animasi</h2>
+            <section class="card panel panel-animation" aria-labelledby="animation-panel-title">
+              <div class="panel-head">
+                <span class="step-chip" aria-hidden="true">04</span>
+                <h2 class="panel-title" id="animation-panel-title">Pengaturan Animasi</h2>
+              </div>
 
               <div class="field">
                 <span class="field-label">Preset animasi</span>
@@ -195,8 +277,11 @@
               <p class="panel-note">Pratinjau animasi berjalan lokal di peramban pada pratinjau raster dan hasil vektor. Konversi preset menjadi keyframe XML ditandai sebagai belum diimplementasikan.</p>
             </section>
 
-            <section class="card panel" aria-labelledby="export-panel-title">
-              <h2 class="panel-title" id="export-panel-title">Ekspor XML</h2>
+            <section class="card panel panel-export" aria-labelledby="export-panel-title">
+              <div class="panel-head">
+                <span class="step-chip" aria-hidden="true">05</span>
+                <h2 class="panel-title" id="export-panel-title">Ekspor XML</h2>
+              </div>
 
               <div class="field">
                 <label class="field-label" for="export-name">Nama berkas</label>
@@ -224,7 +309,7 @@
                 <button type="button" class="alert-close" id="export-message-close" aria-label="Tutup pesan">&times;</button>
               </div>
 
-              <p class="panel-note">Ekspor XML belum diimplementasikan pada tahap ini. Vektorisasi kini berjalan nyata, namun generator XML Alight Motion masih menyusul. Kompatibilitas impor akan diklaim hanya setelah pembangkit XML tersedia dan lulus uji impor nyata di Alight Motion (lihat docs/SDD.md).</p>
+              <p class="panel-note">Ekspor XML belum diimplementasikan pada tahap ini. Vektorisasi berjalan nyata, namun generator XML Alight Motion masih menyusul. Kompatibilitas impor akan diklaim hanya setelah pembangkit XML tersedia dan lulus uji impor nyata di Alight Motion (lihat docs/SDD.md).</p>
             </section>
 
           </aside>
@@ -233,6 +318,7 @@
 
       <section class="page page-hidden" id="page-preset" aria-label="Preset">
         <div class="page-head">
+          <p class="page-kicker">GAYA GERAK</p>
           <h1 class="page-title">Preset Animasi</h1>
           <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio, pada pratinjau raster maupun hasil vektor. Penerapan preset ke keyframe Alight Motion akan tersedia setelah adapter XML diimplementasikan.</p>
         </div>
@@ -263,6 +349,7 @@
 
       <section class="page page-hidden" id="page-tentang" aria-label="Tentang">
         <div class="page-head">
+          <p class="page-kicker">TENTANG ALAT INI</p>
           <h1 class="page-title">Tentang Naze Vector</h1>
           <p class="page-sub">Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dengan target ekspor XML untuk Alight Motion.</p>
         </div>
@@ -279,6 +366,7 @@
                 <tr><td>Pemrosesan Siluet (raster)</td><td><span class="badge badge-ok">Tersedia</span></td><td>Ambang luminansi, mode gelap/terang, warna siluet.</td></tr>
                 <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan).</td></tr>
                 <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas, pada raster dan vektor.</td></tr>
+                <tr><td>Desain Antarmuka (v0.3.0)</td><td><span class="badge badge-ok">Tersedia</span></td><td>DS-1: identitas visual Imperfect by Design; fungsionalitas pipeline tidak berubah.</td></tr>
                 <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog AM-1; menunggu referensi terverifikasi.</td></tr>
                 <tr><td>Validasi XML</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog XV-1.</td></tr>
                 <tr><td>Ekspor XML</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog EX-1; tanpa klaim kompatibilitas.</td></tr>
@@ -303,7 +391,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.2.0 — vektorisasi SVG</span>
+        <span class="footer-version">v0.3.0 — redesign visual</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>
