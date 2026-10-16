@@ -349,7 +349,7 @@ export function runVectorEngineTests() {
     };
   }
 
-  test('requestXmlExport menjalankan vektorisasi lalu gagal jujur di adapter XML', () => {
+  test('requestXmlExport menghasilkan XML statis yang lulus validasi lokal (AM-1 + XV-1)', () => {
     const canvas = makeFakeCanvas(20, 20, (x, y) => {
       const dx = x - 10;
       const dy = y - 10;
@@ -359,14 +359,17 @@ export function runVectorEngineTests() {
     const state = {
       image: { name: 'uji.png', canvas },
       vector: { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' },
+      exportName: 'siluet-uji',
     };
     const result = requestXmlExport(state);
-    assert(!result.ok, 'ekspor belum boleh berhasil');
-    assert(
-      result.message.includes('Adapter XML Alight Motion'),
-      'kegagalan berasal dari tahap AM-1: ' + result.message
-    );
-    assert(!result.xml, 'tidak ada XML palsu');
+    assert(result.ok, 'ekspor kini harus berhasil: ' + (result.message || ''));
+    assert(typeof result.xml === 'string' && result.xml.length > 0, 'XML dihasilkan');
+    assert(result.xml.includes('<scene '), 'akar scene ada');
+    assert(result.xml.includes('<shape id="1"'), 'satu bentuk dengan id 1');
+    assert(result.xml.includes('title="siluet-uji"'), 'nama ekspor dipakai sebagai judul scene');
+    assert(result.xml.includes('<contour d="'), 'kontur ada di parameter bentuk');
+    assert(!result.xml.includes('<kf '), 'XML statis: tidak ada keyframe (AN-1 belum dikerjakan)');
+    assert(result.validation && result.validation.valid === true, 'validasi lokal lulus');
   });
 
   test('requestXmlExport menolak state tanpa gambar dan mask kosong dengan pesan jelas', () => {
@@ -383,13 +386,21 @@ export function runVectorEngineTests() {
     assert(!nullState.ok, 'state null ditolak');
   });
 
-  test('statusStrip menandai mesin vektorisasi tersedia dan fitur XML belum', () => {
+  test('statusStrip menandai fitur tersedia dengan catatan batas yang jujur', () => {
     const vector = FEATURE_STATUS.find((f) => f.label === 'Mesin Vektorisasi (SVG)');
     assert(vector && vector.available === true, 'vektorisasi tersedia');
     const adapter = FEATURE_STATUS.find((f) => f.label === 'Adapter XML Alight Motion');
-    assert(adapter && adapter.available === false, 'adapter XML masih belum diimplementasikan');
+    assert(adapter && adapter.available === true, 'adapter XML kini tersedia (lokal)');
+    assert(
+      adapter.note && adapter.note.includes('keyframe'),
+      'catatan adapter menyatakan batas statis: ' + (adapter && adapter.note)
+    );
     const ekspor = FEATURE_STATUS.find((f) => f.label === 'Ekspor XML');
-    assert(ekspor && ekspor.available === false, 'ekspor XML masih belum diimplementasikan');
+    assert(ekspor && ekspor.available === true, 'ekspor XML kini tersedia (lokal)');
+    assert(
+      ekspor.note && ekspor.note.includes('belum diuji'),
+      'catatan ekspor menyatakan kompatibilitas impor belum teruji: ' + (ekspor && ekspor.note)
+    );
   });
 
   return {

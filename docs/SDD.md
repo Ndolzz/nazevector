@@ -5,7 +5,7 @@ Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-16.
 
 ## 1. Ringkasan
 
-Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Adapter XML, validasi XML, dan ekspor tetap ditandai secara eksplisit sebagai belum diimplementasikan.
+Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Pembaruan v0.4.0 memperbaiki bug navigasi "Buka Studio" (backlog NB-1, lihat bagian 9) dan menyelesaikan adapter XML, validasi XML, serta unduhan ekspor lokal berupa bentuk statis tanpa keyframe (backlog AM-1, XV-1, EX-1; lihat bagian 10). Penerapan keyframe preset (AN-1) dan bukti kompatibilitas impor nyata (TS-1) tetap tertunda dan ditandai secara jujur di antarmuka.
 
 ## 2. Hasil Audit (P0)
 
@@ -66,9 +66,9 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | RF-07 | Preset animasi Silhouette Reveal, Scale Pulse, Rotation Motion dengan durasi dan intensitas, kontrol putar, jeda, ulangi | Diimplementasikan (pratinjau lokal) |
 | RF-08 | Panel ekspor: nama berkas, format target, status validasi, informasi kompatibilitas, pesan kesalahan yang jelas | Diimplementasikan (panel); ekspor ditandai belum tersedia |
 | RF-09 | Mesin vektorisasi (path SVG) | Diimplementasikan (VE-1; uji 18/18 lulus, lihat bagian 7) |
-| RF-10 | Adapter XML Alight Motion | Belum diimplementasikan (AM-1) |
-| RF-11 | Validasi XML | Belum diimplementasikan (XV-1) |
-| RF-12 | Ekspor XML | Belum diimplementasikan (EX-1) |
+| RF-10 | Adapter XML Alight Motion | Diimplementasikan (AM-1, v0.4.0): bentuk statis tanpa keyframe; tanpa klaim kompatibilitas impor (TS-1) |
+| RF-11 | Validasi XML | Diimplementasikan (XV-1, v0.4.0): validasi lokal, bukan bukti kompatibilitas |
+| RF-12 | Ekspor XML | Diimplementasikan (EX-1, v0.4.0): unduhan .xml lokal berupa bentuk statis |
 
 ### 3.2 Kebutuhan non-fungsional
 
@@ -91,9 +91,9 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/modules/silhouette.js | Komputasi mask siluet raster (nyata) |
 | js/modules/vectorEngine.js | Vektorisasi mask menjadi path SVG tertutup: marching squares pada crack boundary + penyederhanaan RDP (nyata) |
 | js/modules/animation.js | Definisi preset dan mesin pratinjau animasi lokal (nyata) |
-| js/modules/amAdapter.js | Serializer XML Alight Motion (stub eksplisit) |
-| js/modules/xmlValidation.js | Validasi dokumen XML (stub eksplisit) |
-| js/modules/exportManager.js | Orkestrasi pipeline ekspor; mengembalikan pesan kesalahan terstruktur |
+| js/modules/amAdapter.js | Serializer XML Alight Motion (AM-1): scene berisi satu bentuk imported statis dari kontur vektor |
+| js/modules/xmlValidation.js | Validasi dokumen XML (XV-1): well-formedness, atribut wajib, ID unik, rentang waktu, warna, kontur |
+| js/modules/exportManager.js | Orkestrasi pipeline ekspor: mask → vektorisasi → XML (AM-1) → validasi (XV-1); mengembalikan hasil atau pesan kesalahan terstruktur |
 | js/modules/pipelineErrors.js | Tipe kesalahan PipelineNotAvailableError |
 | js/ui/statusStrip.js | Strip status fitur |
 | js/ui/uploadZone.js | Zona unggah: pemilih berkas dan drag-and-drop |
@@ -103,9 +103,10 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/ui/exportPanel.js | Panel ekspor dan pesan status |
 | js/ui/pages.js | Perutean lokal antar halaman |
 | tests/vectorEngine.test.js | Rangkaian uji murni mesin vektorisasi (18 kasus, tanpa DOM, dapat dijalankan di peramban) |
+| tests/amAdapter.test.js | Rangkaian uji murni adapter XML, validasi, dan integrasi ekspor (21 kasus, tanpa DOM) |
 | tests/index.html | Harness peramban untuk menjalankan rangkaian uji |
 
-Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau raster dirasterisasi. vectorEngine mengubah mask menjadi VectorPathData (SVG) yang ditampilkan sebagai pratinjau vektor beserta statistiknya; perubahan gambar, mode, ambang, penyederhanaan, dan warna memicu penghitungan ulang dari state terkini (lihat 7.3). Tahap berikutnya belum tersedia: animation menghasilkan AnimationClipData, amAdapter membuat XML, xmlValidation memverifikasi, dan exportManager mengunduh. Setiap tahap memancarkan pesan status yang jujur.
+Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau raster dirasterisasi. vectorEngine mengubah mask menjadi VectorPathData (SVG) yang ditampilkan sebagai pratinjau vektor beserta statistiknya; perubahan gambar, mode, ambang, penyederhanaan, dan warna memicu penghitungan ulang dari state terkini (lihat 7.3). Saat tombol ekspor ditekan, exportManager menghitung ulang mask dan vektor dari state terkini, lalu amAdapter membangun XML scene statis (satu bentuk imported) dan xmlValidation memverifikasinya sebelum unduhan (lihat bagian 10). Tahap yang masih belum tersedia: penerapan AnimationClipData preset menjadi keyframe XML (AN-1). Setiap tahap memancarkan pesan status yang jujur.
 
 ### 3.4 Kriteria penerimaan
 
@@ -122,9 +123,9 @@ Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke s
 
 ## 4. Batas implementasi tahap 1
 
-Diimplementasikan: desain, navigasi, unggah, pratinjau (asli + siluet raster + hasil vektor SVG), kontrol UI, state aplikasi, pratinjau animasi lokal, mesin vektorisasi dengan penyederhanaan bertingkat (VE-1, VE-2).
+Diimplementasikan: desain, navigasi, unggah, pratinjau (asli + siluet raster + hasil vektor SVG), kontrol UI, state aplikasi, pratinjau animasi lokal, mesin vektorisasi dengan penyederhanaan bertingkat (VE-1, VE-2), adapter XML statis (AM-1), validasi XML lokal (XV-1), dan unduhan ekspor .xml (EX-1).
 
-Belum diimplementasikan (ditandai eksplisit di UI): adapter XML Alight Motion, validasi XML, unduhan ekspor.
+Belum diimplementasikan (ditandai eksplisit di UI): penerapan keyframe preset ke properti Alight Motion (AN-1) dan bukti kompatibilitas impor nyata (TS-1).
 
 ## 5. Backlog
 
@@ -132,10 +133,10 @@ Belum diimplementasikan (ditandai eksplisit di UI): adapter XML Alight Motion, v
 |----|-------|----------------|
 | VE-1 | Mesin vektorisasi mask ke path SVG | Selesai (v0.2.0): marching squares pada crack boundary + RDP per kontur tertutup; uji 18/18 lulus (lihat 7) |
 | VE-2 | Penyederhanaan path bertingkat | Selesai (v0.2.0): toleransi rendah 0.3 px, sedang 1.5 px, tinggi 3.5 px; override tolerancePx didukung; terhubung ke kontrol state |
-| AM-1 | Adapter XML Alight Motion | Basis: alight-motion-docs komunitas; butuh verifikasi uji impor nyata sebelum klaim kompatibel |
-| AN-1 | Penerapan keyframe preset ke properti AM (scale, rotation, opacity) | Bergantung AM-1 |
-| XV-1 | Validasi XML (well-formedness, atribut wajib, referensi ID) | Jalankan sebelum unduhan |
-| EX-1 | Unduh .xml + proses unduhan multi-berkas bila diperlukan | Bergantung AM-1 dan XV-1 |
+| AM-1 | Adapter XML Alight Motion | Selesai (v0.4.0): bentuk imported statis dari kontur vektor; lihat bagian 10. Tanpa klaim kompatibilitas sebelum TS-1 |
+| AN-1 | Penerapan keyframe preset ke properti AM (scale, rotation, opacity) | Bergantung TS-1: semantik keyframe pada bentuk imported harus diverifikasi lewat uji impor nyata sebelum diimplementasikan |
+| XV-1 | Validasi XML (well-formedness, atribut wajib, referensi ID) | Selesai (v0.4.0): dijalankan sebelum unduhan; lihat bagian 10 |
+| EX-1 | Unduh .xml + proses unduhan multi-berkas bila diperlukan | Selesai (v0.4.0): unduhan satu .xml lokal; multi-berkas tidak diperlukan untuk keluaran vektor murni; lihat bagian 10 |
 | TS-1 | Uji impor nyata di Alight Motion (Android) | Bukti keberhasilan wajib sebelum klaim kompatibilitas apa pun |
 | DS-1 | Redesign visual "Imperfect by Design" | Selesai (v0.3.0): lihat bagian 8 |
 | NB-1 | Perbaikan bug tombol "Buka Studio" (no-op) dan reset gulir saat pindah halaman | Selesai (v0.4.0): lihat bagian 9 |
@@ -329,3 +330,66 @@ Total: 25/25 asersi harness lulus; uji regresi 18/18 lulus.
 | NB-1 | Tombol "Buka Studio" tidak no-op; pindah halaman me-reset gulir | pages.js + index.html + main.css v0.4.0; verifikasi 9.4 | Selesai |
 | RF-01 | Navigasi berfungsi dengan status aktif yang jelas | Harness K1–K7; aria-current terverifikasi | Diperbaiki (NB-1) |
 | NFR-04 (aksesibilitas) | Hormati prefers-reduced-motion pada navigasi | K4 behavior auto | Terpenuhi |
+
+## 10. Implementasi AM-1 + XV-1 + EX-1 (v0.4.0): ekspor XML lokal statis
+
+### 10.1 Pemilihan tugas dan alasan
+
+Sesuai urutan prioritas backlog: (1) tidak ditemukan bukti konkret kekurangan fungsional vektorisasi — 18 uji VE-1 lulus dan pratinjau vektor berfungsi, sehingga tidak ada dasar memodifikasi mesin; (2) pratinjau animasi lokal juga sudah berfungsi (AN-1 adalah konversi preset menjadi keyframe XML, yang bergantung pada keberadaan adapter XML dan, menurut riset, pada semantik keyframe yang hanya dapat dipercaya setelah uji impor nyata TS-1 — mengarang penerapan keyframe tanpa bukti bertentangan dengan prinsip kejujuran proyek); (3) adapter XML AM-1 memiliki basis terverifikasi: format scene XML konkret dari dokumentasi komunitas hasil dekompilasi (kuchingneko28/alight-motion-docs, docs/authoring.md, v5.0.273) yang memuat atribut scene, elemen shape imported dengan `<parameter><contour d>`, transform, fillColor #AARRGGBB, dan alokasi ID. Karena itu unit kerja yang dipilih adalah AM-1 + XV-1 + EX-1 sebagai satu unit koheren "ekspor XML lokal" yang dapat diuji mandiri; AN-1 dan TS-1 tetap di backlog dengan alasan tercatat.
+
+### 10.2 Ruang lingkup
+
+- AM-1 (`js/modules/amAdapter.js`): `buildAlightMotionXml(vectorPathData, options)` membangun dokumen `<scene>` berisi tepat satu elemen `<shape>` non-live (imported): transform dengan `location` di pusat kanvas, `fillColor` #AARRGGBB dari warna siluet, dan `<parameter><contour d>` berisi gabungan seluruh subpath (kontur luar dan lubang) yang digeser `(-width/2, -height/2)`. Opsi `{ title, totalTime, fps, modifiedTime, color }` tersedia untuk determinisme pengujian; `modifiedTime` default `Date.now()`. Input tidak valid melempar Error berbahasa Indonesia.
+- XV-1 (`js/modules/xmlValidation.js`): `validateAlightMotionXml(xmlString)` mengembalikan `{ valid, issues }`. Validator murni tanpa DOMParser: well-formedness (tag berpasangan, atribut berkutip, satu akar), akar `scene` dengan atribut wajib, atribut bilangan bulat, bgcolor/fillColor #AARRGGBB, ID elemen unik positif, `startTime`/`endTime` dalam `[0, totalTime]`, dan kontur bentuk imported tidak kosong.
+- EX-1: `js/modules/exportManager.js` menghitung ulang mask + vektor dari state saat tombol ditekan, memanggil AM-1, lalu XV-1; hasil gagal jujur bila tidak ada gambar atau siluet kosong. `js/ui/exportPanel.js` mengunduh hasil via Blob + `URL.createObjectURL` + anchor lokal (nama disanitasi + `.xml`), menampilkan badge "Validasi lokal lulus" (disimpan pada variabel closure, tanpa perubahan kontrak `state.js`), dan pesan sukses yang menyatakan bahwa kompatibilitas impor belum diuji.
+- Antarmuka: strip status menandai adapter dan ekspor tersedia dengan catatan batas; panel ekspor, hero, halaman Preset, dan tabel status halaman Tentang diperbarui ke teks jujur v0.4.0. Nilai default (bentuk statis, tanpa keyframe) ditampilkan eksplisit.
+
+### 10.3 Keputusan teknis
+
+1. Scene memakai `bgcolor="#00000000"` (transparan), `totalTime` 5000 ms, `fps="30"`, `amver="1028425"`, `ffver="106"`, `am="com.alightcreative.motion/5.0.273.1028425"`, `amplatform="android"` — sesuai contoh minimal dan daftar atribut pada dokumentasi komunitas (SDD 2.3).
+2. Asumsi belum terverifikasi (ditandai di kode dan menunggu TS-1): kontur bentuk imported diposisikan terpusat relatif terhadap `transform.location`. Bukti tidak langsung: template `.rect` berukuran 100×100 tergambar terpusat pada titik `location` (scale 1), dan konverter pihak ketiga menyebut posisi tengah otomatis. Konsekuensinya: `location` diisi pusat kanvas `(width/2, height/2, 0)` dan kontur digeser `(-width/2, -height/2)` sehingga siluet tampil penuh di tengah kanvas.
+3. Keluaran sengaja statis: satu `<shape>` tanpa `<kf>` keyframe. Penerapan preset animasi (AN-1) tidak diarang; semantik keyframe pada bentuk imported akan diverifikasi lewat uji impor nyata terlebih dahulu.
+4. Validator ditulis sebagai parser kecil murni (tanpa DOMParser) agar identik di peramban dan di harness uji tanpa Node, dan validasi dijalankan sebelum unduhan (XV-1).
+5. `exportName` dipakai sebagai judul scene (di-escape XML); nama berkas unduhan tetap disanitasi terpisah.
+6. Status validasi lokal disimpan pada closure panel, bukan di store, agar kontrak `state.js` tidak berubah.
+
+### 10.4 Risiko regresi dan mitigasi
+
+1. Risiko: perubahan exportManager/statusStrip merusak uji lama. Mitigasi: dua asersi uji lama diperbarui sesuai perilaku baru (dijelaskan di 10.5), tidak ada uji yang dihapus; 16 uji lainnya tidak berubah.
+2. Risiko: unduhan gagal di peramban tertentu. Mitigasi: alur memakai API standar (Blob, createObjectURL, anchor); bagian ini tidak dapat diuji di sandbox dan wajib diverifikasi manual di peramban (10.6).
+3. Risiko: XML ditolap aplikasi Alight Motion. Mitigasi: seluruh teks antarmuka dan dokumentasi menyatakan kompatibilitas belum teruji; tidak ada klaim sebelum TS-1.
+4. Risiko: asumsi penempatan kontur keliru. Mitigasi: asumsi ditandai eksplisit di kode dan SDD; bila TS-1 menunjukkan offset berbeda, perbaikan bersifat lokal pada amAdapter saja.
+
+### 10.5 Hasil verifikasi (dijalankan 2026-10-16 sebelum push, sandbox tanpa peramban)
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| Sintaks 20 berkas JS (modul + suite uji, kompilasi `new Function`) | Lulus 20/20 |
+| Rangkaian uji vektorisasi (regresi, 18 kasus, 2 asersi integrasi ekspor diperbarui sesuai fitur baru) | Lulus 18/18 |
+| Rangkaian uji baru tests/amAdapter.test.js (21 kasus: struktur scene, kontur terpusat, multi-subpath cincin, warna, ID, determinisme, escape, input invalid, validator valid/tidak-valid, id duplikat, endTime>totalTime, kontur kosong, integrasi exportManager 3 kasus) | Lulus 21/21 |
+| Contoh keluaran XML (mask cincin 12×12) ditinjau manual terhadap dokumentasi format | Sesuai: atribut scene lengkap, satu shape imported, kontur gabungan luar+lubang terpusat, fillColor #FF3B82F6 |
+| Struktural index.html v0.4.0: 41/41 ID DOM wajib ada (termasuk export-format dan studio-workspace), tag seimbang, 2 kemunculan v0.4.0, teks jujur (badge-pending hanya untuk batas yang benar-benar belum) | Lulus |
+| Harness NB-1 (navigasi) dijalankan ulang setelah perubahan | Tidak terdampak: pages.js tidak disentuh pada unit ini |
+
+Dua asersi uji lama yang diperbarui (bukan dihapus): (a) kasus 17 "requestXmlExport … gagal jujur di adapter XML" menjadi "menghasilkan XML statis yang lulus validasi lokal" — karena fitur kini nyata, kegagalan jujur AM-1 tidak lagi menjadi perilaku yang benar; (b) kasus 18 statusStrip kini memeriksa ketersediaan beserta catatan batas. Kasus tanpa gambar dan siluet kosong tetap gagal jujur dan tetap lulus.
+
+### 10.6 Keterbatasan
+
+- Tidak ada uji impor nyata di aplikasi Alight Motion (TS-1): seluruh kesesuaian format didasarkan pada dokumentasi komunitas; kompatibilitas TIDAK diklaim.
+- Unduhan berkas (Blob, createObjectURL, anchor) dan alur tombol ekspor di peramban belum dapat diuji di sandbox; wajib diverifikasi manual di Chrome/Android.
+- Asumsi penempatan kontur terpusat belum terverifikasi (lihat 10.3 butir 2).
+- Validator memeriksa struktur, bukan semantik penuh format Alight Motion (misalnya validitas nilai easing atau efek tidak diperiksa karena di luar keluaran adapter).
+
+### 10.7 Traceability
+
+| Backlog / Kebutuhan | Kewajiban | Bukti | Status |
+|---------------------|-----------|-------|--------|
+| AM-1 | Adapter XML Alight Motion | js/modules/amAdapter.js; uji 21/21 (10.5) | Selesai (statis; tanpa klaim kompatibilitas) |
+| XV-1 | Validasi XML sebelum unduhan | js/modules/xmlValidation.js; uji validator 10.5 | Selesai |
+| EX-1 | Unduh .xml | js/ui/exportPanel.js + exportManager.js; uji integrasi 10.5 | Selesai (unduhan peramban wajib diverifikasi manual) |
+| RF-10 | Adapter XML Alight Motion | 10.2–10.5 | Diimplementasikan |
+| RF-11 | Validasi XML | 10.2–10.5 | Diimplementasikan |
+| RF-12 | Ekspor XML | 10.2–10.5 | Diimplementasikan |
+| AC-05 | Tidak ada klaim ekspor XML valid tanpa bukti | Badge dan pesan menyatakan "validasi lokal" dan "kompatibilitas belum diuji"; klaim kompatibilitas ditunda hingga TS-1 | Terpenuhi |
+| AN-1 | Keyframe preset | Tidak dikerjakan — prasyarat TS-1 (lihat 10.1) | Tetap backlog |
+| TS-1 | Uji impor nyata | Tidak dapat dijalankan di lingkungan ini | Tetap backlog |

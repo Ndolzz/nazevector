@@ -36,7 +36,7 @@
       <section class="page" id="page-studio" aria-label="Studio">
 
         <div class="hero">
-          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.3.0</span></p>
+          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.4.0</span></p>
           <h1 class="hero-title">Ubah gambar menjadi <em>vektor beranimasi</em>.</h1>
           <p class="hero-sub">Ubah gambar menjadi siluet vektor, jelajahi gaya animasi, dan siapkan karya untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban Anda — tanpa akun, tanpa unggahan ke server.</p>
           <div class="hero-cta">
@@ -46,7 +46,7 @@
           <ul class="hero-tags">
             <li class="hero-tag"><i class="tag-dot tag-dot-green" aria-hidden="true"></i>Siluet Vektor</li>
             <li class="hero-tag"><i class="tag-dot tag-dot-purple" aria-hidden="true"></i>Animasi Keyframe</li>
-            <li class="hero-tag"><i class="tag-dot tag-dot-orange" aria-hidden="true"></i>XML Alight Motion <span class="tag-note">menyusul</span></li>
+            <li class="hero-tag"><i class="tag-dot tag-dot-orange" aria-hidden="true"></i>XML Alight Motion <span class="tag-note">ekspor statis</span></li>
           </ul>
           <div class="status-strip" id="feature-status-strip" aria-label="Status fitur"></div>
 
@@ -231,7 +231,7 @@
                 <p class="field-note">Tingkat penyederhanaan mengontrol pengurangan titik kontur pada hasil SVG.</p>
               </div>
 
-              <p class="panel-note">Pratinjau raster dan hasil vektor SVG dihitung lokal dari mask siluet. Ekspor XML untuk Alight Motion menyusul pada tahap berikutnya (lihat docs/SDD.md).</p>
+              <p class="panel-note">Pratinjau raster dan hasil vektor SVG dihitung lokal dari mask siluet. Ekspor menghasilkan XML statis dari kontur ini; keyframe animasi menyusul (lihat docs/SDD.md).</p>
             </section>
 
             <section class="card panel panel-animation" aria-labelledby="animation-panel-title">
@@ -290,8 +290,8 @@
 
               <div class="field">
                 <label class="field-label" for="export-format">Format target</label>
-                <select id="export-format" disabled>
-                  <option>Alight Motion XML (.xml) — belum tersedia</option>
+                <select id="export-format">
+                  <option>Alight Motion XML (.xml) — bentuk statis</option>
                 </select>
               </div>
 
@@ -309,7 +309,7 @@
                 <button type="button" class="alert-close" id="export-message-close" aria-label="Tutup pesan">&times;</button>
               </div>
 
-              <p class="panel-note">Ekspor XML belum diimplementasikan pada tahap ini. Vektorisasi berjalan nyata, namun generator XML Alight Motion masih menyusul. Kompatibilitas impor akan diklaim hanya setelah pembangkit XML tersedia dan lulus uji impor nyata di Alight Motion (lihat docs/SDD.md).</p>
+              <p class="panel-note">Ekspor menghasilkan XML proyek Alight Motion berisi satu bentuk statis dari kontur siluet — tanpa keyframe animasi (menyusul pada backlog AN-1). XML lulus validasi lokal; kompatibilitas impor di aplikasi Alight Motion belum diuji (TS-1). Tidak ada klaim kompatibilitas sebelum uji impor nyata (lihat docs/SDD.md).</p>
             </section>
 
           </aside>
@@ -320,7 +320,7 @@
         <div class="page-head">
           <p class="page-kicker">GAYA GERAK</p>
           <h1 class="page-title">Preset Animasi</h1>
-          <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio, pada pratinjau raster maupun hasil vektor. Penerapan preset ke keyframe Alight Motion akan tersedia setelah adapter XML diimplementasikan.</p>
+          <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio, pada pratinjau raster maupun hasil vektor. Penerapan preset ke keyframe XML Alight Motion menyusul setelah format adapter teruji impor (backlog AN-1 dan TS-1).</p>
         </div>
         <div class="preset-grid">
           <article class="card preset-card">
@@ -328,21 +328,21 @@
             <h2 class="preset-card-title">Silhouette Reveal</h2>
             <p class="preset-card-desc">Siluet muncul dari skala kecil dengan transisi opasitas halus, lalu menghilang dan berulang sesuai durasi.</p>
             <p class="preset-card-meta">Parameter: durasi 0,5–6 detik; intensitas mengatur skala awal.</p>
-            <span class="badge badge-pending">Pratinjau lokal — ekspor menyusul</span>
+            <span class="badge badge-pending">Pratinjau lokal — keyframe XML menyusul</span>
           </article>
           <article class="card preset-card">
             <div class="preset-demo"><div class="demo-shape demo-pulse"></div></div>
             <h2 class="preset-card-title">Scale Pulse</h2>
             <p class="preset-card-desc">Siluet membesar dan mengecil secara periodis; intensitas menentukan amplitudo denyut.</p>
             <p class="preset-card-meta">Parameter: durasi 0,5–6 detik; intensitas mengatur amplitudo skala.</p>
-            <span class="badge badge-pending">Pratinjau lokal — ekspor menyusul</span>
+            <span class="badge badge-pending">Pratinjau lokal — keyframe XML menyusul</span>
           </article>
           <article class="card preset-card">
             <div class="preset-demo"><div class="demo-shape demo-rotation"></div></div>
             <h2 class="preset-card-title">Rotation Motion</h2>
             <p class="preset-card-desc">Siluet berputar bolak-balik mengikuti sudut yang ditentukan intensitas.</p>
             <p class="preset-card-meta">Parameter: durasi 0,5–6 detik; intensitas mengatur sudut putar.</p>
-            <span class="badge badge-pending">Pratinjau lokal — ekspor menyusul</span>
+            <span class="badge badge-pending">Pratinjau lokal — keyframe XML menyusul</span>
           </article>
         </div>
       </section>
@@ -367,9 +367,9 @@
                 <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan).</td></tr>
                 <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas, pada raster dan vektor.</td></tr>
                 <tr><td>Desain Antarmuka (v0.3.0)</td><td><span class="badge badge-ok">Tersedia</span></td><td>DS-1: identitas visual Imperfect by Design; fungsionalitas pipeline tidak berubah.</td></tr>
-                <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog AM-1; menunggu referensi terverifikasi.</td></tr>
-                <tr><td>Validasi XML</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog XV-1.</td></tr>
-                <tr><td>Ekspor XML</td><td><span class="badge badge-pending">Belum diimplementasikan</span></td><td>Backlog EX-1; tanpa klaim kompatibilitas.</td></tr>
+                <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1: satu bentuk statis dari kontur vektor; keyframe menyusul (AN-1).</td></tr>
+                <tr><td>Validasi XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>XV-1: well-formedness, atribut wajib, ID unik, rentang waktu, format warna.</td></tr>
+                <tr><td>Ekspor XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>EX-1: unduh .xml lokal; kompatibilitas impor belum teruji (TS-1).</td></tr>
               </tbody>
             </table>
           </div>
@@ -391,7 +391,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.3.0 — redesign visual</span>
+        <span class="footer-version">v0.4.0 — ekspor XML lokal</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>

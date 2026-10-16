@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark" />
-  <title>Naze Vector — Uji Mesin Vektorisasi (VE-1)</title>
+  <title>Naze Vector — Uji Vektorisasi dan Ekspor XML</title>
   <style>
     :root {
       --bg: #020617;
@@ -69,19 +69,27 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Uji Mesin Vektorisasi — VE-1</h1>
-    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
+    <h1>Uji Naze Vector — VE-1 + AM-1/XV-1/EX-1</h1>
+    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js dan tests/amAdapter.test.js di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
     <div class="summary" id="summary"><p class="pending">Memuat modul uji…</p></div>
     <div id="cases"></div>
   </div>
   <script type="module">
     import { runVectorEngineTests } from './vectorEngine.test.js';
+    import { runAmAdapterTests } from './amAdapter.test.js';
 
     const summary = document.getElementById('summary');
     const cases = document.getElementById('cases');
     let results;
     try {
-      results = runVectorEngineTests();
+      const ve = runVectorEngineTests();
+      const am = runAmAdapterTests();
+      results = {
+        total: ve.total + am.total,
+        passed: ve.passed + am.passed,
+        failed: ve.failed + am.failed,
+        failures: ve.failures.concat(am.failures),
+      };
     } catch (error) {
       summary.textContent = '';
       const box = document.createElement('p');

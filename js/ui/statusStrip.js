@@ -5,8 +5,8 @@ export const FEATURE_STATUS = [
   { label: 'Pratinjau Siluet Raster', available: true },
   { label: 'Mesin Vektorisasi (SVG)', available: true },
   { label: 'Pratinjau Animasi Lokal', available: true },
-  { label: 'Adapter XML Alight Motion', available: false },
-  { label: 'Ekspor XML', available: false },
+  { label: 'Adapter XML Alight Motion', available: true, note: 'statis, tanpa keyframe' },
+  { label: 'Ekspor XML', available: true, note: 'kompatibilitas impor belum diuji' },
 ];
 
 export function renderFeatureStatusStrip(container) {
@@ -18,11 +18,12 @@ export function renderFeatureStatusStrip(container) {
     const dot = document.createElement('i');
     dot.className = 'chip-dot';
     chip.appendChild(dot);
-    chip.appendChild(
-      document.createTextNode(
-        feature.label + (feature.available ? ' — tersedia' : ' — belum diimplementasikan')
-      )
-    );
+    let text =
+      feature.label + (feature.available ? ' — tersedia' : ' — belum diimplementasikan');
+    if (feature.note) {
+      text += ' (' + feature.note + ')';
+    }
+    chip.appendChild(document.createTextNode(text));
     container.appendChild(chip);
   }
 }

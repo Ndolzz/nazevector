@@ -2,7 +2,7 @@
 
 Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dengan target ekspor XML untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban; tidak ada akun, backend, atau API berbayar.
 
-Status: v0.3.0 — redesign visual "Imperfect by Design" (backlog DS-1 selesai) di atas antarmuka lengkap dan mesin vektorisasi SVG (backlog VE-1 dan VE-2 selesai). Adapter XML dan ekspor masih stub eksplisit.
+Status: v0.4.0 — ekspor XML lokal (backlog AM-1, XV-1, EX-1 selesai) di atas perbaikan navigasi NB-1, redesign visual "Imperfect by Design" (DS-1), dan mesin vektorisasi SVG (VE-1, VE-2). Keluaran XML berupa bentuk statis tanpa keyframe; kompatibilitas impor di aplikasi Alight Motion belum diuji (backlog TS-1).
 
 ## Identitas visual (v0.3.0)
 
@@ -18,9 +18,11 @@ Berfungsi:
 - Mesin vektorisasi: mask siluet menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah (termasuk pulau di dalam lubang), dan penyederhanaan bertingkat (rendah/sedang/tinggi). Koordinat proporsional terhadap dimensi mask; seluruhnya lokal, nol dependensi.
 - Pratinjau hasil vektor (SVG) beserta statistik komponen/kontur/titik; perubahan gambar, ambang, mode, warna, dan penyederhanaan langsung memperbarui hasil.
 - Pratinjau animasi lokal: Silhouette Reveal, Scale Pulse, Rotation Motion, dengan durasi, intensitas, putar, jeda, ulangi; animasi juga diterapkan pada hasil vektor.
+- Ekspor XML Alight Motion (AM-1): tombol ekspor menghitung ulang mask dan vektor dari pengaturan terkini, membangun dokumen `<scene>` berisi satu bentuk statis dari kontur siluet (termasuk lubang internal), memvalidasinya secara lokal (XV-1: well-formedness, atribut wajib, ID unik, rentang waktu, format warna), lalu mengunduhnya sebagai `.xml` (EX-1). Semua berjalan lokal di peramban; nol dependensi.
 
 Belum diimplementasikan (ditandai jelas di antarmuka):
-- Adapter XML Alight Motion, validasi XML, dan unduhan ekspor. Tombol ekspor menjalankan tahap vektorisasi yang nyata lalu berhenti jujur dengan pesan "belum diimplementasikan"; tidak ada berkas XML palsu yang dihasilkan. Lihat `docs/SDD.md` untuk backlog.
+- Penerapan preset animasi menjadi keyframe XML (backlog AN-1) — menunggu verifikasi semantik keyframe melalui uji impor nyata.
+- Uji impor nyata di aplikasi Alight Motion pada perangkat Android (backlog TS-1). Tanpa bukti tersebut, proyek ini tidak mengklaim kompatibilitas impor apa pun. Lihat `docs/SDD.md` untuk backlog.
 
 ## Menjalankan secara lokal
 
@@ -35,7 +37,7 @@ Lalu buka http://localhost:8080.
 
 ## Menjalankan pengujian
 
-Rangkaian uji mesin vektorisasi (18 kasus, tanpa Node.js) dapat dijalankan di peramban:
+Rangkaian uji vektorisasi dan ekspor XML (39 kasus: 18 VE-1 + 21 AM-1/XV-1/EX-1, tanpa Node.js) dapat dijalankan di peramban:
 
 ```bash
 python3 -m http.server 8080
@@ -52,14 +54,15 @@ index.html            Struktur halaman
 styles/main.css       Sistem desain dan animasi
 js/main.js            Orkestrasi
 js/state.js           Store status aplikasi
-js/modules/           Pipeline: imageImport, silhouette, vectorEngine (nyata),
-                      animation, amAdapter, xmlValidation, exportManager
+js/modules/           Pipeline: imageImport, silhouette, vectorEngine,
+                      animation, amAdapter (XML statis), xmlValidation,
+                      exportManager (ekspor lokal)
 js/ui/                Komponen UI: pages, uploadZone, previewPanel,
                       vectorPanel, animationPanel, exportPanel, statusStrip
-tests/                Rangkaian uji mesin vektorisasi dan harness peramban
+tests/                Rangkaian uji vektorisasi, adapter/ekspor XML, harness peramban
 docs/SDD.md           Hasil audit, spesifikasi, kriteria penerimaan, backlog
 ```
 
 ## Kompatibilitas
 
-Alight Creative tidak memublikasikan spesifikasi resmi format XML. Hasil VE-1 adalah geometri vektor siap dipakai tahap berikutnya; ini bukan klaim vektor animasi final maupun klaim kompatibilitas impor apa pun. Klaim kompatibilitas hanya akan diberikan setelah berkas XML yang dihasilkan lulus uji impor nyata di Alight Motion.
+Alight Creative tidak memublikasikan spesifikasi resmi format XML. Adapter AM-1 dibangun dari dokumentasi komunitas hasil rekayasa balik (alight-motion-docs) dan menghasilkan XML yang lulus validasi lokal, namun hal itu bukan klaim vektor animasi final (keluaran masih bentuk statis) maupun klaim kompatibilitas impor. Klaim kompatibilitas hanya akan diberikan setelah berkas XML yang dihasilkan lulus uji impor nyata di Alight Motion.
