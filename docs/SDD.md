@@ -57,7 +57,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 
 | ID | Kebutuhan | Status |
 |----|-----------|--------|
-| RF-01 | Navigasi Studio, Preset, Tentang berfungsi dengan status aktif yang jelas | Diimplementasikan |
+| RF-01 | Navigasi Studio, Preset, Tentang berfungsi dengan status aktif yang jelas | Tidak berubah; NB-1 (bagian 9) memperbaiki CTA "Buka Studio" dan reset gulir |
 | RF-02 | Unggah gambar melalui pemilih berkas dan drag-and-drop; mendukung PNG, JPG, WebP; batas 15 MB | Diimplementasikan |
 | RF-03 | Pratinjau gambar asli dengan metadata (nama, dimensi, ukuran) | Diimplementasikan |
 | RF-04 | Tombol ganti dan hapus gambar berfungsi penuh | Diimplementasikan |
@@ -138,6 +138,7 @@ Belum diimplementasikan (ditandai eksplisit di UI): adapter XML Alight Motion, v
 | EX-1 | Unduh .xml + proses unduhan multi-berkas bila diperlukan | Bergantung AM-1 dan XV-1 |
 | TS-1 | Uji impor nyata di Alight Motion (Android) | Bukti keberhasilan wajib sebelum klaim kompatibilitas apa pun |
 | DS-1 | Redesign visual "Imperfect by Design" | Selesai (v0.3.0): lihat bagian 8 |
+| NB-1 | Perbaikan bug tombol "Buka Studio" (no-op) dan reset gulir saat pindah halaman | Selesai (v0.4.0): lihat bagian 9 |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
 | TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.2.0): 18 uji murni mesin vektorisasi berjalan via tests/index.html di peramban tanpa Node; unit silhouette dan uji runtime peramban belum tercakup |
 
@@ -267,3 +268,64 @@ DS-1 merombak identitas visual situs menjadi khas, modern, kreatif, dan profesio
 | NFR-02 | Identitas visual baru terdefinisi sebagai token | styles/main.css :root; SDD 8.2 | Diimplementasikan |
 | RF-01 | Navigasi tetap berfungsi | data-nav utuh (7 referensi), .page dan .nav-link.active terverifikasi | Tidak berubah |
 | AC-04 | Keluaran SVG tidak rusak | Uji 18/18 lulus ulang (7.4) | Terpenuhi |
+
+## 9. Implementasi NB-1 (v0.4.0): perbaikan bug navigasi "Buka Studio"
+
+### 9.1 Akar masalah
+
+Audit v0.3.0 menemukan dua cacat perilaku pada `js/ui/pages.js` (dibaca langsung dari HEAD `c71fca1`, bukan dari ingatan):
+
+1. Handler klik `data-nav` hanya memanggil `store.set({ page })`. Tombol hero "Buka Studio" berada di dalam `#page-studio`; ketika halaman aktif sudah Studio (halaman awal), klik tombol tersebut tidak mengubah apa pun — no-op mutlak, tanpa umpan balik apa pun kepada pengguna. CTA pada header memiliki masalah yang sama ketika pengguna sudah berada di Studio.
+2. Perpindahan halaman (misalnya Studio → Preset) mempertahankan posisi gulir halaman sebelumnya, sehingga halaman baru dapat terbuka pada posisi gulir di tengah dokumen.
+
+### 9.2 Perbaikan (perubahan terkecil pada arsitektur existing)
+
+`js/ui/pages.js` (satu-satunya berkas JS yang diubah):
+
+- Atribut `data-nav-scroll` (opsional) pada tombol `data-nav`: setelah `store.set({ page })`, elemen target dicari dengan `qs('#' + nilai)` dan digulir via `element.scrollIntoView({ behavior, block: 'start' })`. Ketika target ditemukan, `window.scrollTo` tidak dipanggil (menghindari gulir ganda).
+- Tombol tanpa `data-nav-scroll`: `window.scrollTo({ top: 0, behavior })` dipanggil hanya jika halaman benar-benar berubah (`pageChanged`), sehingga klik ulang pada halaman aktif tidak menggulir.
+- `behavior` berharga `auto` ketika `matchMedia('(prefers-reduced-motion: reduce)').matches`, selainnya `smooth` (menghormati preferensi aksesibilitas).
+- Render, kelas `active`, `aria-current`, dan `page-hidden` tidak diubah.
+
+`index.html`: `id="studio-workspace"` ditambahkan pada pembungkus area kerja Studio; dua tombol "Buka Studio" (header dan hero) diberi `data-nav-scroll="studio-workspace"`. `styles/main.css`: `scroll-margin-top: 84px` pada `.workspace` agar target gulir tidak tertutup header lengket. Tidak ada ID DOM lain, kontrak modul, atau state yang diubah.
+
+### 9.3 Berkas yang berubah
+
+- `index.html` (3 suntingan: 1 id baru, 2 atribut data-nav-scroll)
+- `js/ui/pages.js` (penulisan ulang handler klik, API modul tidak berubah)
+- `styles/main.css` (1 deklarasi scroll-margin-top)
+- `docs/SDD.md` (bagian 9 ini, baris backlog NB-1, status RF-01)
+
+### 9.4 Kriteria penerimaan bugfix dan hasil verifikasi (dijalankan 2026-10-16 sebelum push, sandbox tanpa peramban)
+
+Kriteria penerimaan NB-1: (a) klik "Buka Studio" dari halaman mana pun mengaktifkan Studio dan menggulir ke area kerja; (b) tombol "Lihat Preset", navigasi utama, dan tautan merek tetap berfungsi; (c) pindah halaman menggulir ke atas; (d) `prefers-reduced-motion` menghasilkan `behavior: auto`; (e) seluruh ID DOM yang dirujuk JS tetap ada; (f) sintaks seluruh JS valid.
+
+Metode: harness DOM-palsu (stub `document`, `window.matchMedia`, `classList`, `scrollIntoView`, `scrollTo`) yang menjalankan `dom.js` + `state.js` + `pages.js` asli hasil penghapusan awalan `export` (tanpa mengubah isi), ditambah pemeriksaan struktural `index.html`.
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| K0 Sintaks pages.js + dom.js + state.js (new Function) | Lulus |
+| K1 Hero CTA dari halaman Preset: page=studio, scrollIntoView workspace 1x, tanpa window.scrollTo, .page-toggle benar | Lulus (4/4) |
+| K2 Nav link pindah halaman: scrollTo top=0 1x behavior smooth; klik ulang halaman sama tidak menggulir; tanpa scrollIntoView | Lulus (5/5) |
+| K3 Header CTA saat sudah di Studio: scrollIntoView dipanggil (bukan no-op) | Lulus (2/2) |
+| K4 prefers-reduced-motion: behavior auto pada scrollIntoView dan scrollTo | Lulus (2/2) |
+| K5 Merek dari Tentang: page=studio, scrollTo tepat 1x, tanpa scrollIntoView, .page-toggle benar | Lulus (5/5) |
+| K6 Kelas active dan aria-current pada nav-link (termasuk non-nav-link tanpa active) | Lulus (5/5) |
+| K7 "Lihat Preset": page=preset, scrollTo top 1x | Lulus (2/2) |
+| Struktural HTML: 40/40 ID DOM wajib ada, 2 tombol data-nav-scroll, radio vector-mode utuh | Lulus |
+| Uji mesin vektorisasi (regresi, 18 uji) | Lulus 18/18 (tidak terdampak: tidak ada modul pipeline yang diubah) |
+
+Total: 25/25 asersi harness lulus; uji regresi 18/18 lulus.
+
+### 9.5 Keterbatasan
+
+- Harness menggunakan DOM palsu; perilaku gulir sebenarnya (Chrome/Android, header lengket, nilai `scroll-margin-top`) wajib diverifikasi manual di peramban nyata.
+- Posisi `scroll-margin-top: 84px` disesuaikan dengan tinggi header v0.3.0; bila tinggi header berubah, nilai ini harus ditinjau ulang.
+
+### 9.6 Traceability
+
+| Backlog / Kebutuhan | Kewajiban | Bukti | Status |
+|---------------------|-----------|-------|--------|
+| NB-1 | Tombol "Buka Studio" tidak no-op; pindah halaman me-reset gulir | pages.js + index.html + main.css v0.4.0; verifikasi 9.4 | Selesai |
+| RF-01 | Navigasi berfungsi dengan status aktif yang jelas | Harness K1–K7; aria-current terverifikasi | Diperbaiki (NB-1) |
+| NFR-04 (aksesibilitas) | Hormati prefers-reduced-motion pada navigasi | K4 behavior auto | Terpenuhi |

@@ -262,6 +262,7 @@ a { color: var(--ink); }
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 20px;
   align-items: start;
+  scroll-margin-top: 84px; /* ruang untuk header lengket saat digulir via data-nav-scroll */
 }
 
 .workspace-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
