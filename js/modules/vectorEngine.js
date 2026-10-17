@@ -2,6 +2,16 @@
 // Algoritma: penelusuran kontur "crack boundary" (marching squares) di atas grid
 // sudut piksel, lalu penyederhanaan Ramer-Douglas-Peucker per kontur tertutup.
 // Murni lokal: hanya komputasi array, tanpa DOM dan tanpa dependensi.
+//
+// Optimasi P1 (v0.4.3): tabel tepi terlacak disimpan pada Uint8Array berbit per
+// arah (satu byte per sudut grid; bit 0-3 menandai arah yang sudah dilalui)
+// menggantikan Set dengan kunci numerik besar. Sandungan (x, y, dir) ke byte
+// adalah bijektif terhadap kunci edgeKey lama, sehingga urutan, peran, dan
+// geometri kontur identik dengan implementasi sebelumnya — dibuktikan regresi
+// 96 perbandingan mesin lama vs baru (subpath, role, d, SVG identik) pada mask
+// uji, mask acak, dan mask sintetis tiga ukuran (docs/SDD.md bagian 13).
+// Scan tetap mengunjungi tiap piksel sekali; pemeriksaan tetangga dibaca langsung
+// dari mask (tanpa pemanggilan closure per piksel).
 
 export const SIMPLIFICATION_LEVELS = {
   rendah: { tolerancePx: 0.3 },
@@ -29,23 +39,32 @@ export function vectorizeSilhouette(maskData, vectorSettings = {}) {
 
   const isInside = (x, y) =>
     x >= 0 && y >= 0 && x < width && y < height && mask[y * width + x] > 0;
-  const visited = new Set();
+  // Tepi terarah (x, y, dir) pada grid sudut [0..width] x [0..height]:
+  // satu byte per sudut (stride width+1), bit ke-dir menyala bila tepi dilalui.
+  const stride = width + 1;
+  const visited = new Uint8Array(stride * (height + 1));
   const subpaths = [];
 
   for (let y = 0; y < height; y += 1) {
+    const row = y * width;
+    const rowAbove = row - width;
+    const rowBelow = row + width;
+    const hasAbove = y > 0;
+    const hasBelow = y < height - 1;
     for (let x = 0; x < width; x += 1) {
-      if (!isInside(x, y)) continue;
+      if (mask[row + x] === 0) continue;
       // Empat tetangga: setiap crack antar piksel dalam/luar punya tepat satu arah.
-      if (!isInside(x, y - 1)) traceLoopIfNew(x + 1, y, 0);
-      if (!isInside(x, y + 1)) traceLoopIfNew(x, y + 1, 2);
-      if (!isInside(x - 1, y)) traceLoopIfNew(x, y, 1);
-      if (!isInside(x + 1, y)) traceLoopIfNew(x + 1, y + 1, 3);
+      // Pembacaan tetangga langsung dari mask setara isInside(x, y±1)/(x±1, y).
+      if (!(hasAbove && mask[rowAbove + x] > 0)) traceLoopIfNew(x + 1, y, 0);
+      if (!(hasBelow && mask[rowBelow + x] > 0)) traceLoopIfNew(x, y + 1, 2);
+      if (!(x > 0 && mask[row + x - 1] > 0)) traceLoopIfNew(x, y, 1);
+      if (!(x < width - 1 && mask[row + x + 1] > 0)) traceLoopIfNew(x + 1, y + 1, 3);
     }
   }
 
   function traceLoopIfNew(startX, startY, startDir) {
-    if (visited.has(edgeKey(startX, startY, startDir))) return;
-    const loop = traceLoop(startX, startY, startDir, isInside, visited);
+    if (visited[startY * stride + startX] & (1 << startDir)) return;
+    const loop = traceLoop(startX, startY, startDir, isInside, visited, stride);
     const merged = mergeCollinear(loop);
     if (merged.length < 4) return; // kontur degenerasi: tidak menghasilkan subpath
     const signedArea2 = shoelace2(merged);
@@ -161,11 +180,6 @@ function sanitizeColorHex(colorHex) {
 
 /* ---------- Penelusuran kontur (marching squares pada crack boundary) ---------- */
 
-function edgeKey(x, y, dir) {
-  // Arah disandikan bersama sudut; key unik per tepi terarah.
-  return (y * 4 + dir) * 4294967296 + x; // y*4+dir hingga ~2^32 aman untuk lebar <= 2^31
-}
-
 function hasOutgoing(isInside, x, y, dir) {
   switch (dir) {
     case 0: // kiri: piksel kiri-bawah dalam, kiri-atas luar
@@ -183,7 +197,7 @@ function hasOutgoing(isInside, x, y, dir) {
 
 function nextDir(isInside, x, y, arrivalDir) {
   // Preferensi belok: kiri, lurus, kanan. Konvensi ini menjaga sisi dalam selalu
-  // di kiri arah jalan dan memisahkan komponen yang bersentangan diagonal.
+  // di kiri arah jalan dan memisahkan komponen yang bersentuhan diagonal.
   const candidates = [(arrivalDir + 1) % 4, arrivalDir, (arrivalDir + 3) % 4];
   for (const dir of candidates) {
     if (hasOutgoing(isInside, x, y, dir)) return dir;
@@ -191,14 +205,14 @@ function nextDir(isInside, x, y, arrivalDir) {
   throw new Error('Kesalahan internal pelacakan kontur siluet.');
 }
 
-function traceLoop(startX, startY, startDir, isInside, visited) {
+function traceLoop(startX, startY, startDir, isInside, visited, stride) {
   const xs = [startX];
   const ys = [startY];
   let x = startX;
   let y = startY;
   let dir = startDir;
   do {
-    visited.add(edgeKey(x, y, dir));
+    visited[y * stride + x] |= 1 << dir; // bit ke-dir: tepi (x, y, dir) terlacak
     x += DX[dir];
     y += DY[dir];
     xs.push(x);

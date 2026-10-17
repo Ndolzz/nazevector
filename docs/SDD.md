@@ -1,11 +1,11 @@
 # SDD — Naze Vector Website MVP
 
 Dokumen: Spesifikasi dan Desain (SDD) untuk Naze Vector.
-Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-16.
+Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-17.
 
 ## 1. Ringkasan
 
-Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Pembaruan v0.4.0 memperbaiki bug navigasi "Buka Studio" (backlog NB-1, lihat bagian 9) dan menyelesaikan adapter XML, validasi XML, serta unduhan ekspor lokal berupa bentuk statis tanpa keyframe (backlog AM-1, XV-1, EX-1; lihat bagian 10). Pembaruan v0.4.1 (backlog AM-2, XV-2) menyelaraskan struktur keluaran dengan pola ekspor asli Alight Motion (lihat bagian 11). Pembaruan v0.4.2 (backlog AM-3, XV-3) memperbaiki bukti lapangan baru — berkas v0.4.1 berhasil diimpor namun kanvas tampak kosong — dengan memindahkan outline ke tag path sesuai parser asli Alight Motion dan menambah regresi geometri (lihat bagian 12). Penerapan keyframe preset (AN-1) dan bukti kompatibilitas impor nyata (TS-1) tetap tertunda dan ditandai secara jujur di antarmuka.
+Naze Vector adalah alat berbasis peramban untuk mengubah gambar menjadi siluet vektor animasi dan mengekspornya sebagai XML untuk Alight Motion. Tahap pertama (MVP) berfokus pada desain website, navigasi, unggah gambar, pratinjau, kontrol antarmuka, dan status aplikasi yang benar-benar berfungsi. Pembaruan v0.2.0 menambahkan mesin vektorisasi yang berfungsi (backlog VE-1 dan VE-2): mask siluet diubah menjadi path SVG tertutup dengan kontur luar, lubang internal, beberapa komponen terpisah, dan penyederhanaan bertingkat. Pembaruan v0.3.0 (backlog DS-1) merombak identitas visual situs ke arah "Imperfect by Design" tanpa mengubah perilaku pipeline (lihat bagian 8). Pembaruan v0.4.0 memperbaiki bug navigasi "Buka Studio" (backlog NB-1, lihat bagian 9) dan menyelesaikan adapter XML, validasi XML, serta unduhan ekspor lokal berupa bentuk statis tanpa keyframe (backlog AM-1, XV-1, EX-1; lihat bagian 10). Pembaruan v0.4.1 (backlog AM-2, XV-2) menyelaraskan struktur keluaran dengan pola ekspor asli Alight Motion (lihat bagian 11). Pembaruan v0.4.2 (backlog AM-3, XV-3) memperbaiki bukti lapangan baru — berkas v0.4.1 berhasil diimpor namun kanvas tampak kosong — dengan memindahkan outline ke tag path sesuai parser asli Alight Motion dan menambah regresi geometri (lihat bagian 12). Pembaruan v0.4.3 (backlog PF-1) memperbaiki performa pratinjau siluet dan vektorisasi berdasarkan pengukuran: tabel tepi terlacak kini bit-packed, mask pratinjau dihitung pada resolusi kerja terbatas, dan debounce penghitungan dinaikkan — tanpa mengubah geometri kontur maupun jalur ekspor resolusi penuh (lihat bagian 13). Penerapan keyframe preset (AN-1) dan bukti kompatibilitas impor nyata (TS-1) tetap tertunda dan ditandai secara jujur di antarmuka.
 
 ## 2. Hasil Audit (P0)
 
@@ -24,7 +24,7 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 
 - Mendukung elemen SVG: path, rect, circle, ellipse, polyline, polygon.
 - Fitur relevan: dukungan warna CSS, grup bertingkat, akumulasi transformasi matrix, konversi arc ke Bezier, deteksi bentuk (persegi, lingkaran, segitiga) menjadi primitif bawaan Alight Motion, dan posisi tengah otomatis.
-- Batasan penting: Alight Motion tidak dapat menyematkan gambar raster langsung di dalam XML; raster tertanam dikirim sebagai .zip berisi XML plus berkas gambar terpisah yang harus ditautkan ulang secara manual (Ganti Media).
+- Batasan penting: Alight Motion tidak dapat menyematkan gambar raster langsung di dalam XML; raster tertanam dikirim sebagai .zip berisi XML plus berkas gambar terpisah yang harus dikaitkan ulang secara manual (Ganti Media).
 - Font/teks dan gambar yang ditautkan dari luar (URL) tidak didukung oleh konverter tersebut.
 - Alur impor di Alight Motion: tombol + lalu Import, lalu pilih berkas .xml.
 
@@ -61,11 +61,11 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | RF-02 | Unggah gambar melalui pemilih berkas dan drag-and-drop; mendukung PNG, JPG, WebP; batas 15 MB | Diimplementasikan |
 | RF-03 | Pratinjau gambar asli dengan metadata (nama, dimensi, ukuran) | Diimplementasikan |
 | RF-04 | Tombol ganti dan hapus gambar berfungsi penuh | Diimplementasikan |
-| RF-05 | Kontrol siluet (mode, warna, ambang) menghasilkan pratinjau siluet raster yang benar-benar dihitung lokal | Diimplementasikan (raster) |
+| RF-05 | Kontrol siluet (mode, warna, ambang) menghasilkan pratinjau siluet raster yang benar-benar dihitung lokal | Diimplementasikan (raster); P1 (v0.4.3) menghitung mask pratinjau pada resolusi kerja terbatas tanpa mengubah hasil ekspor (lihat bagian 13) |
 | RF-06 | Kontrol penyederhanaan path memengaruhi jumlah titik kontur hasil vektorisasi | Diimplementasikan (VE-2) |
 | RF-07 | Preset animasi Silhouette Reveal, Scale Pulse, Rotation Motion dengan durasi dan intensitas, kontrol putar, jeda, ulangi | Diimplementasikan (pratinjau lokal) |
 | RF-08 | Panel ekspor: nama berkas, format target, status validasi, informasi kompatibilitas, pesan kesalahan yang jelas | Diimplementasikan (panel); ekspor ditandai belum tersedia |
-| RF-09 | Mesin vektorisasi (path SVG) | Diimplementasikan (VE-1; uji 18/18 lulus, lihat bagian 7) |
+| RF-09 | Mesin vektorisasi (path SVG) | Diimplementasikan (VE-1; uji 18/18 lulus, lihat bagian 7; P1 mengganti struktur data internal tanpa mengubah keluaran, lihat bagian 13) |
 | RF-10 | Adapter XML Alight Motion | Diimplementasikan (AM-1 + AM-2 + AM-3, v0.4.2): bentuk statis tanpa keyframe; struktur mengikuti pola ekspor asli; outline pada tag path sesuai parser asli; tanpa klaim kompatibilitas impor (TS-1) |
 | RF-11 | Validasi XML | Diimplementasikan (XV-1 + XV-2 + XV-3, v0.4.2): validasi lokal termasuk pola struktural ekspor asli, syarat outline path, dan fixture regresi; bukan bukti kompatibilitas |
 | RF-12 | Ekspor XML | Diimplementasikan (EX-1, v0.4.0): unduhan .xml lokal berupa bentuk statis |
@@ -88,8 +88,8 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/state.js | Store status aplikasi (pub/sub sederhana) |
 | js/dom.js | Pembantu kueri DOM |
 | js/modules/imageImport.js | Impor dan normalisasi gambar (nyata) |
-| js/modules/silhouette.js | Komputasi mask siluet raster (nyata) |
-| js/modules/vectorEngine.js | Vektorisasi mask menjadi path SVG tertutup: marching squares pada crack boundary + penyederhanaan RDP (nyata) |
+| js/modules/silhouette.js | Komputasi mask siluet raster (nyata); P1 (v0.4.3): inti murni computeSilhouetteMaskFromPixels plus pembantu resolusi kerja pratinjau (computePreviewDimensions, PREVIEW_MAX_DIMENSION); computeSilhouetteMask (resolusi penuh) tetap dipakai jalur ekspor |
+| js/modules/vectorEngine.js | Vektorisasi mask menjadi path SVG tertutup: marching squares pada crack boundary + penyederhanaan RDP (nyata); P1 (v0.4.3): tabel tepi terlacak bit-packed Uint8Array menggantikan Set kunci numerik tanpa mengubah keluaran geometri |
 | js/modules/animation.js | Definisi preset dan mesin pratinjau animasi lokal (nyata) |
 | js/modules/amAdapter.js | Serializer XML Alight Motion (AM-1 + AM-3): scene berisi satu bentuk imported statis dengan outline pada tag path sesuai pola parser asli |
 | js/modules/xmlValidation.js | Validasi dokumen XML (XV-1 + XV-3): well-formedness, atribut wajib, pola ekspor asli, ID unik, rentang waktu, warna, outline shape |
@@ -97,17 +97,17 @@ Referensi alur SVG ke XML Alight Motion. Temuan dari halaman utama dan FAQ:
 | js/modules/pipelineErrors.js | Tipe kesalahan PipelineNotAvailableError |
 | js/ui/statusStrip.js | Strip status fitur |
 | js/ui/uploadZone.js | Zona unggah: pemilih berkas dan drag-and-drop |
-| js/ui/previewPanel.js | Pratinjau asli dan siluet, siklus hidup animasi |
+| js/ui/previewPanel.js | Pratinjau asli dan siluet, siklus hidup animasi; P1 (v0.4.3): mask pratinjau dihitung pada resolusi kerja pratinjau lewat kanvas luar layar yang dipakai ulang, debounce penghitungan mask 150 ms |
 | js/ui/vectorPanel.js | Kontrol pengaturan vektor |
 | js/ui/animationPanel.js | Kontrol pengaturan animasi dan pemutaran |
 | js/ui/exportPanel.js | Panel ekspor dan pesan status |
 | js/ui/pages.js | Perutean lokal antar halaman |
-| tests/vectorEngine.test.js | Rangkaian uji murni mesin vektorisasi (18 kasus, tanpa DOM, dapat dijalankan di peramban) |
+| tests/vectorEngine.test.js | Rangkaian uji murni mesin vektorisasi (18 kasus) plus suite pembantu pratinjau P1 (5 kasus: dimensi kerja, inti mask murni; tanpa DOM, dapat dijalankan di peramban) |
 | tests/amAdapter.test.js | Rangkaian uji murni adapter XML, validasi, dan integrasi ekspor (21 kasus, tanpa DOM) |
 | tests/amImportFixture.test.js | Rangkaian uji regresi impor dan tampilan (9 kasus: fixture ekspor asli, penolakan pola gagal v0.4.0 dan v0.4.1, fixture ekspor asli berpath, regresi geometri lingkaran dan cincin) |
-| tests/index.html | Harness peramban untuk menjalankan rangkaian uji |
+| tests/index.html | Harness peramban untuk menjalankan seluruh rangkaian uji (53 kasus) |
 
-Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau raster dirasterisasi. vectorEngine mengubah mask menjadi VectorPathData (SVG) yang ditampilkan sebagai pratinjau vektor beserta statistiknya; perubahan gambar, mode, ambang, penyederhanaan, dan warna memicu penghitungan ulang dari state terkini (lihat 7.3). Saat tombol ekspor ditekan, exportManager menghitung ulang mask dan vektor dari state terkini, lalu amAdapter membangun XML scene statis (satu bentuk imported) dan xmlValidation memverifikasinya sebelum unduhan (lihat bagian 10). Tahap yang masih belum tersedia: penerapan AnimationClipData preset menjadi keyframe XML (AN-1). Setiap tahap memancarkan pesan status yang jujur.
+Alur data: imageImport menghasilkan ImageDescriptor (kanvas ternormalisasi) ke store; silhouette menghitung mask dari kanvas; pratinjau raster dirasterisasi. vectorEngine mengubah mask menjadi VectorPathData (SVG) yang ditampilkan sebagai pratinjau vektor beserta statistiknya; perubahan gambar, mode, ambang, penyederhanaan, dan warna memicu penghitungan ulang dari state terkini (lihat 7.3). Sejak v0.4.3 pratinjau menghitung mask pada resolusi kerja terbatas (maks 700 px, tanpa pembesaran), sedangkan ekspor tetap menghitung mask resolusi penuh dari kanvas ternormalisasi. Saat tombol ekspor ditekan, exportManager menghitung ulang mask dan vektor dari state terkini, lalu amAdapter membangun XML scene statis (satu bentuk imported) dan xmlValidation memverifikasinya sebelum unduhan (lihat bagian 10). Tahap yang masih belum tersedia: penerapan AnimationClipData preset menjadi keyframe XML (AN-1). Setiap tahap memancarkan pesan status yang jujur.
 
 ### 3.4 Kriteria penerimaan
 
@@ -145,8 +145,9 @@ Belum diimplementasikan (ditandai eksplisit di UI): penerapan keyframe preset ke
 | TS-1 | Uji impor nyata di Alight Motion (Android) | v0.4.0 terbukti gagal diimpor di lapangan; v0.4.1 terimpor namun kanvas kosong; v0.4.2 wajib diuji ulang dan diverifikasi secara visual (shape terlihat, bentuk/posisi/skala/warna masuk akal) sebelum klaim kompatibilitas apa pun |
 | DS-1 | Redesign visual "Imperfect by Design" | Selesai (v0.3.0): lihat bagian 8 |
 | NB-1 | Perbaikan bug tombol "Buka Studio" (no-op) dan reset gulir saat pindah halaman | Selesai (v0.4.0): lihat bagian 9 |
+| PF-1 | Performa pratinjau siluet dan vektorisasi | Selesai (v0.4.3): bottleneck terukur (operasi hash Set + panggilan closure per piksel pada pemindaian area penuh); perbaikan = tabel tepi bit-packed, resolusi kerja pratinjau maks 700 px, debounce 150 ms; keluaran geometri terbukti identik 66/66 perbandingan mesin lama vs baru; lihat bagian 13. Pengukuran waktu pada perangkat nyata belum tersedia |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
-| TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.4.2): 48 uji murni (18 VE + 21 AM/XV/EX + 9 fixture regresi) berjalan via tests/index.html di peramban tanpa Node; unit silhouette terpisah dan uji runtime peramban belum tercakup |
+| TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.4.3): 53 uji murni (18 VE + 21 AM/XV/EX + 9 fixture regresi + 5 pembantu pratinjau P1 termasuk unit inti mask murni) berjalan via tests/index.html di peramban tanpa Node; uji runtime peramban belum tercakup |
 
 ## 6. Catatan verifikasi
 
@@ -290,7 +291,7 @@ Audit v0.3.0 menemukan dua cacat perilaku pada `js/ui/pages.js` (dibaca langsung
 
 - Atribut `data-nav-scroll` (opsional) pada tombol `data-nav`: setelah `store.set({ page })`, elemen target dicari dengan `qs('#' + nilai)` dan digulir via `element.scrollIntoView({ behavior, block: 'start' })`. Ketika target ditemukan, `window.scrollTo` tidak dipanggil (menghindari gulir ganda).
 - Tombol tanpa `data-nav-scroll`: `window.scrollTo({ top: 0, behavior })` dipanggil hanya jika halaman benar-benar berubah (`pageChanged`), sehingga klik ulang pada halaman aktif tidak menggulir.
-- `behavior` berharga `auto` ketika `matchMedia('(prefers-reduced-motion: reduce)').matches`, selainnya `smooth` (menghormati preferensi aksesibilitas).
+- `behavior` bernilai `auto` ketika `matchMedia('(prefers-reduced-motion: reduce)').matches`, selainnya `smooth` (menghormati preferensi aksesibilitas).
 - Render, kelas `active`, `aria-current`, dan `page-hidden` tidak diubah.
 
 `index.html`: `id="studio-workspace"` ditambahkan pada pembungkus area kerja Studio; dua tombol "Buka Studio" (header dan hero) diberi `data-nav-scroll="studio-workspace"`. `styles/main.css`: `scroll-margin-top: 84px` pada `.workspace` agar target gulir tidak tertutup header lengket. Tidak ada ID DOM lain, kontrak modul, atau state yang diubah.
@@ -353,7 +354,7 @@ Sesuai urutan prioritas backlog: (1) tidak ditemukan bukti konkret kekurangan fu
 
 1. Scene memakai `bgcolor="#00000000"` (transparan), `totalTime` 5000 ms, `fps="30"`, `amver="1028425"`, `ffver="106"`, `am="com.alightcreative.motion/5.0.273.1028425"`, `amplatform="android"` — sesuai contoh minimal dan daftar atribut pada dokumentasi komunitas (SDD 2.3).
 2. Asumsi belum terverifikasi (ditandai di kode dan menunggu TS-1): kontur bentuk imported diposisikan terpusat relatif terhadap `transform.location`. Bukti tidak langsung: template `.rect` berukuran 100×100 tergambar terpusat pada titik `location` (scale 1), dan konverter pihak ketiga menyebut posisi tengah otomatis. Konsekuensinya: `location` diisi pusat kanvas `(width/2, height/2, 0)` dan kontur digeser `(-width/2, -height/2)` sehingga siluet tampil penuh di tengah kanvas.
-3. Keluaran sengaja statis: satu `<shape>` tanpa `<kf>` keyframe. Penerapan preset animasi (AN-1) tidak diarang; semantik keyframe pada bentuk imported akan diverifikasi lewat uji impor nyata terlebih dahulu.
+3. Keluaran sengaja statis: satu `<shape>` tanpa `<kf>` keyframe. Penerapan preset animasi (AN-1) tidak dikejar; semantik keyframe pada bentuk imported akan diverifikasi lewat uji impor nyata terlebih dahulu.
 4. Validator ditulis sebagai parser kecil murni (tanpa DOMParser) agar identik di peramban dan di harness uji tanpa Node, dan validasi dijalankan sebelum unduhan (XV-1).
 5. `exportName` dipakai sebagai judul scene (di-escape XML); nama berkas unduhan tetap disanitasi terpisah.
 6. Status validasi lokal disimpan pada closure panel, bukan di store, agar kontrak `state.js` tidak berubah.
@@ -362,7 +363,7 @@ Sesuai urutan prioritas backlog: (1) tidak ditemukan bukti konkret kekurangan fu
 
 1. Risiko: perubahan exportManager/statusStrip merusak uji lama. Mitigasi: dua asersi uji lama diperbarui sesuai perilaku baru (dijelaskan di 10.5), tidak ada uji yang dihapus; 16 uji lainnya tidak berubah.
 2. Risiko: unduhan gagal di peramban tertentu. Mitigasi: alur memakai API standar (Blob, createObjectURL, anchor); bagian ini tidak dapat diuji di sandbox dan wajib diverifikasi manual di peramban (10.6).
-3. Risiko: XML ditolap aplikasi Alight Motion. Mitigasi: seluruh teks antarmuka dan dokumentasi menyatakan kompatibilitas belum teruji; tidak ada klaim sebelum TS-1.
+3. Risiko: XML ditolak aplikasi Alight Motion. Mitigasi: seluruh teks antarmuka dan dokumentasi menyatakan kompatibilitas belum teruji; tidak ada klaim sebelum TS-1.
 4. Risiko: asumsi penempatan kontur keliru. Mitigasi: asumsi ditandai eksplisit di kode dan SDD; bila TS-1 menunjukkan offset berbeda, perbaikan bersifat lokal pada amAdapter saja.
 
 ### 10.5 Hasil verifikasi (dijalankan 2026-10-16 sebelum push, sandbox tanpa peramban)
@@ -497,3 +498,60 @@ Hasil uji otomatis (dijalankan di sandbox sebelum push): VE 18/18, AM 21/21 (ter
 | AC-05 | Tidak ada klaim ekspor XML valid tanpa bukti | Validasi otomatis dipisahkan dari impor nyata; antarmuka menyatakan tampilan shape belum terbukti (TS-1) | Terpenuhi |
 | AN-1 | Keyframe preset | Tidak dikerjakan — shape statis harus terbukti tampil lebih dulu (TS-1) | Tetap backlog |
 | TS-1 | Uji impor nyata + verifikasi visual | v0.4.0 gagal diimpor; v0.4.1 terimpor namun kosong; v0.4.2 menunggu uji ulang di perangkat nyata | Tetap backlog |
+
+## 13. Implementasi P1 (v0.4.3): performa pratinjau siluet dan vektorisasi
+
+### 13.1 Bukti masalah dan audit awal
+
+Pengguna melaporkan pratinjau siluet dan hasil vektor sangat lambat. Audit dijalankan sebelum mengubah kode: HEAD diverifikasi `1702f3d` (v0.4.2, perbaikan AM-3/XV-3 — dipertahankan utuh, tidak ada perubahan pada amAdapter.js, xmlValidation.js, dan exportManager.js). Pipeline ditelusuri dari sumber: unggah (imageImport, normalisasi maks 1400 px) → computeSilhouetteMask (getImageData + loop luminansi) → vectorizeSilhouette (marching squares pada crack boundary + RDP) → render raster (putImageData) dan SVG (innerHTML). Cache pratinjau per gambar/mode/ambang/warna/penyederhanaan sudah ada sebelumnya; sumber kelambatan dicari dengan pengukuran per tahap, bukan asumsi.
+
+### 13.2 Metode pengukuran dan keterbatasannya
+
+Lingkungan pengerjaan (sandbox tanpa peramban) terverifikasi tidak menyediakan waktu wall-clock yang bergerak selama komputasi (performance.now()/Date.now() menghasilkan waktu logis yang tidak bertambah), dan tidak memiliki perangkat Android; benchmark waktu nyata karenanya tidak mungkin. Mekanisme benchmark yang dipakai: penghitungan operasi deterministik per tahap (jumlah evaluasi piksel mask, panggilan closure, operasi hash Set, operasi bit). Angka op-count adalah bukti kuantitatif perbaikan algoritmik, namun bukan pengganti pengukuran waktu pada perangkat nyata (lihat 13.6).
+
+### 13.3 Hasil pengukuran (bottleneck terukur, gambar sintetis, mode gelap, ambang 50, penyederhanaan sedang)
+
+Gambar 1400×1400 (1,96 juta piksel; 4482 subpath, 4481 komponen, 18.067 titik, ~25% piksel dalam):
+
+- Mesin lama selama pemindaian: 3.994.096 panggilan closure isInside + 23.708 Set.has + 23.708 Set.add (47.416 operasi hash pada kunci numerik edgeKey).
+- Pasca-proses (mergeCollinear 28.193, RDP 26.113 operasi) kecil dibanding pemindaian → bukan bottleneck. Bottleneck = pemindaian area penuh (closure per piksel) + operasi hash Set pada tabel tepi terlacak.
+- Gambar 720×960: 1.415.128 isInside + 20.120 operasi Set-hash. Gambar 240×320: 160.192 isInside + 3.704 Set-hash. Pola konsisten antar ukuran.
+
+### 13.4 Optimasi terarah (perubahan minimal, keluaran geometri identik)
+
+1. js/modules/vectorEngine.js — tabel tepi terlacak diganti: Set dengan kunci numerik edgeKey → Uint8Array berbit per arah ((width+1)×(height+1) byte; bit 0-3 menandai arah yang sudah dilalui pada tiap sudut grid). Sandungan (x, y, dir) → byte bijektif terhadap kunci lama sehingga urutan, peran, dan geometri kontur identik. Pemindaian membaca empat tetangga langsung dari mask (tanpa panggilan closure per piksel; hasil terukur: 3.935.090 pembacaan langsung + hanya 58.992 panggilan closure tersisa pada traceLoop; 0 operasi Set — 23.708 uji bit + 23.708 set bit). traceLoop, nextDir, dan hasOutgoing tidak diubah.
+2. js/modules/silhouette.js — inti perhitungan dipisah menjadi fungsi murni computeSilhouetteMaskFromPixels(pixels, width, height, mode, threshold) (validasi + loop luminansi; mode di-hoist keluar loop); computeSilhouetteMask tidak berubah perilakunya dan tetap menjadi jalur resolusi penuh untuk ekspor. Pembantu baru computePreviewDimensions + PREVIEW_MAX_DIMENSION = 700: dimensi kerja pratinjau dengan rasio aspek terjaga, tidak pernah memperbesar gambar kecil, dan bukan batas resolusi ekspor.
+3. js/ui/previewPanel.js — mask pratinjau dihitung pada resolusi kerja pratinjau melalui kanvas luar layar yang dipakai ulang (drawImage menurunkan resolusi → mask dari pikselnya). Gambar 1400×1400 → 700×700: 490.000 evaluasi piksel (4× lebih sedikit dari 1,96 juta); 720×960 → 525×700: 367.500 evaluasi. Debounce penghitungan mask dinaikkan 30 → 150 ms (konstanta MASK_COMPUTE_DEBOUNCE_MS) agar geser slider ambang pada perangkat lambat tidak mengantrekan penghitungan berat berulang; debounce vektor tetap 30 ms. State selalu dibaca ulang saat eksekusi sehingga pekerjaan terjadwal dengan parameter basi otomatis digantikan parameter terkini (penggantian gambar/mode saat timer tertunda tidak memakai state lama). Cache per gambar/mode/ambang/warna/penyederhanaan dipertahankan. Tampilan tidak berubah: CSS sudah memakai object-fit contain pada kanvas siluet dan SVG vektor.
+4. Web Worker dipertimbangkan dan ditolak: dengan resolusi kerja 700 px dan mesin teroptimasi, beban penghitungan pratinjau kembali dalam batas interaktif (op-count kecil); worker menambah kompleksitas arsitektur (berkas terpisah, transfer state, penjadwalan ulang) yang bertentangan dengan batasan proyek (tanpa dependensi berat, perubahan minimal) tanpa bukti kebutuhan.
+5. Ekspor tidak diubah: exportManager tetap memhitung mask dari kanvas ternormalisasi resolusi penuh; resolusi pratinjau tidak otomatis menjadi batas resolusi ekspor. Statistik vektor pada panel mengikuti geometri pratinjau — dicatat sebagai catatan disengaja (13.6).
+
+### 13.5 Verifikasi (dijalankan sebelum push, sandbox tanpa peramban)
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| Rangkaian uji mesin vektorisasi (18 kasus, tidak berubah) | Lulus 18/18 |
+| Rangkaian uji adapter/validasi/ekspor (21 kasus, tidak berubah) | Lulus 21/21 |
+| Rangkaian uji regresi impor/fixture (9 kasus, tidak berubah) | Lulus 9/9 |
+| Suite baru pembantu pratinjau P1 (5 kasus: dimensi kerja tanpa pembesaran/limit, penolakan masukan tidak valid, ekuivalensi inti murni vs jalur kanvas termasuk piksel transparan dan kedua mode, penolakan data piksel tidak sesuai) | Lulus 5/5 |
+| Total rangkaian uji (tests/index.html menjalankan empat suite) | 53/53 lulus |
+| Baterai kesetaraan mesin lama (1702f3d) vs mesin baru: 22 mask (kasus uji, 8 mask acak deterministik, menabrak bingkai, kanvas penuh, garis 1 px, pulau-dalam-lubang, kosong, sintetis 120/240 berlubang dan penuh) × 3 tingkat penyederhanaan = 66 perbandingan; SVG dan JSON subpath (peran, urutan, titik, luas) identik | 66/66 identik, 0 ketidakcocokan (4.387 subpath pada tingkat sedang) |
+| Regresi jalur ekspor: amAdapter.js, xmlValidation.js, exportManager.js byte-identik dengan 1702f3d; seluruh uji ekspor lulus tanpa perubahan aseri | Lulus |
+| Kompilasi previewPanel.js (salinan tanpa awalan import/export; berkas asli tetap modul ES) | Lulus |
+
+### 13.6 Keterbatasan (wajib dibaca sebelum klaim apa pun)
+
+- Tidak ada pengukuran waktu wall-clock: lingkungan pengerjaan tidak menyediakan jam berjalan selama komputasi dan tidak memiliki perangkat Android nyata. Perbaikan dibuktikan dengan penurunan op-count deterministik dan kesetaraan keluaran, bukan detik. Responsivitas nyata pada HP Android berspesifikasi rendah wajib diverifikasi manual (buka Studio, unggah gambar besar, geser ambang, amati debounce).
+- previewPanel.js tidak diuji runtime (butuh DOM nyata: debounce setTimeout, kanvas luar layar, drawImage, innerHTML). Diverifikasi lewat peninjauan kode, uji pembantu murni, dan kompilasi; harness peramban tests/index.html juga wajib dijalankan ulang secara manual.
+- Statistik vektor (jumlah komponen/kontur/titik) mengikuti geometri pratinjau, bukan resolusi ekspor penuh — perilaku disengaja agar statistik mencerminkan apa yang dilihat pengguna; tercantum di sini agar tidak disalahartikan sebagai regresi.
+- Penghitungan pratinjau tetap sinkron pada utas utama; bila verifikasi perangkat nyata nanti menunjukkan jank, Web Worker menjadi kandidat berikutnya dengan bukti.
+- TS-1 (uji impor nyata) dan AN-1 (keyframe) tetap backlog; perubahan ini tidak menyentuh keduanya.
+
+### 13.7 Traceability
+
+| ID | Butir | Bukti | Status |
+|----|-------|-------|--------|
+| PF-1 | Performa pratinjau siluet dan vektorisasi | 13.3–13.5: op-count turun (0 operasi Set, 4× lebih sedikit piksel pratinjau), 66/66 keluaran identik, 53/53 uji lulus | Selesai (bukti op-count; waktu perangkat nyata belum diukur) |
+| RF-05 | Pratinjau siluet raster responsif | 13.4 butir 2-3 | Diimplementasikan (verifikasi perangkat nyata wajib) |
+| RF-09 | Mesin vektorisasi tanpa regresi keluaran | Baterai kesetaraan 66/66 (13.5) | Terpenuhi |
+| NFR-01 | Responsif untuk HP Android | Op-count pratinjau menurun orde magnitudo pada gambar besar; uji perangkat nyata belum tersedia | Terlayani sebagian |
+| TS-2 | Uji otomatis ringan | 53 uji murni termasuk 5 unit pratinjau P1 baru | Terlayani sebagian |

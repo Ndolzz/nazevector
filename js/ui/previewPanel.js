@@ -1,10 +1,29 @@
 // js/ui/previewPanel.js — Pratinjau gambar asli, siluet raster, hasil vektor, dan animasi.
+//
+// P1 (v0.4.3): mask pratinjau dihitung pada resolusi kerja pratinjau
+// (PREVIEW_MAX_DIMENSION, lihat silhouette.js) dari kanvas yang diperkecil pada
+// kanvas luar layar yang dipakai ulang antar penghitungan. Jalur ekspor tidak
+// terpengaruh: exportManager tetap menghitung mask pada resolusi penuh.
+// Kanvas pratinjau ditampilkan dengan object-fit: contain sehingga ukuran
+// tampilan tidak berubah; hanya resolusi kerjanya yang mengecil.
+// Debounce penghitungan mask dinaikkan menjadi 150 ms agar geser slider ambang
+// pada perangkat lambat tidak mengantrekan penghitungan berat berulang; state
+// selalu dibaca ulang saat eksekusi sehingga pekerjaan lama yang tertinggal
+// otomatis digantikan oleh parameter terkini (docs/SDD.md bagian 13).
 
 import { qs } from '../dom.js';
-import { computeSilhouetteMask, renderSilhouetteToCanvas } from '../modules/silhouette.js';
+import {
+  computeSilhouetteMask,
+  computePreviewDimensions,
+  PREVIEW_MAX_DIMENSION,
+  renderSilhouetteToCanvas,
+} from '../modules/silhouette.js';
 import { vectorizeSilhouette, buildSvgDocument } from '../modules/vectorEngine.js';
 import { applyAnimationToElement, getPresetById } from '../modules/animation.js';
 import { releaseImage } from '../modules/imageImport.js';
+
+const MASK_COMPUTE_DEBOUNCE_MS = 150;
+const VECTOR_COMPUTE_DEBOUNCE_MS = 30;
 
 export function initPreviewPanel(store) {
   const uploadZone = qs('#upload-zone');
@@ -33,6 +52,8 @@ export function initPreviewPanel(store) {
   let vectorScheduled = false;
   let lastAnimKey = '';
   let lastPlayback = 'idle';
+  let previewCanvas = null; // kanvas luar layar untuk pengecilan pratinjau (dipakai ulang)
+  let previewContext = null;
 
   btnReplace.addEventListener('click', () => fileInput.click());
   btnClear.addEventListener('click', () => {
@@ -125,11 +146,7 @@ export function initPreviewPanel(store) {
       localComputing = true;
       processingOverlay.hidden = false;
       vectorProcessing.hidden = false;
-      maskData = computeSilhouetteMask(
-        state.image.canvas,
-        state.vector.mode,
-        state.vector.threshold
-      );
+      maskData = computePreviewMask(state.image.canvas, state.vector.mode, state.vector.threshold);
       renderSilhouetteToCanvas(silhouetteCanvas, maskData, state.vector.color);
       computeVector(state);
       lastImage = state.image;
@@ -139,7 +156,7 @@ export function initPreviewPanel(store) {
       localComputing = false;
       processingOverlay.hidden = !store.get().isProcessing;
       vectorProcessing.hidden = true;
-    }, 30);
+    }, MASK_COMPUTE_DEBOUNCE_MS);
   }
 
   function scheduleVectorCompute() {
@@ -152,7 +169,33 @@ export function initPreviewPanel(store) {
       vectorProcessing.hidden = false;
       computeVector(state);
       vectorProcessing.hidden = true;
-    }, 30);
+    }, VECTOR_COMPUTE_DEBOUNCE_MS);
+  }
+
+  // Mask pratinjau: gambar diperkecil ke dimensi kerja pratinjau pada kanvas
+  // luar layar yang dipakai ulang, lalu mask dihitung dari pikselnya. Gambar
+  // yang sudah di bawah batas tidak diperkecil (mask identik jalur resolusi penuh).
+  function computePreviewMask(sourceCanvas, mode, threshold) {
+    const dims = computePreviewDimensions(
+      sourceCanvas.width,
+      sourceCanvas.height,
+      PREVIEW_MAX_DIMENSION
+    );
+    if (dims.width === sourceCanvas.width && dims.height === sourceCanvas.height) {
+      return computeSilhouetteMask(sourceCanvas, mode, threshold);
+    }
+    if (!previewCanvas) {
+      previewCanvas = document.createElement('canvas');
+      previewContext = previewCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    if (previewCanvas.width !== dims.width || previewCanvas.height !== dims.height) {
+      previewCanvas.width = dims.width; // pengaturan ukuran sekaligus menghapus isi
+      previewCanvas.height = dims.height;
+    } else {
+      previewContext.clearRect(0, 0, dims.width, dims.height);
+    }
+    previewContext.drawImage(sourceCanvas, 0, 0, dims.width, dims.height);
+    return computeSilhouetteMask(previewCanvas, mode, threshold);
   }
 
   function computeVector(state) {

@@ -3,8 +3,17 @@
 // peramban, atau oleh host ES Module apa pun (Node, runner sandbox).
 // Bagian yang membutuhkan DOM peramban (previewPanel, rendering nyata) tidak
 // diuji di sini dan dilaporkan sebagai keterbatasan di docs/SDD.md.
+// P1 (v0.4.3): suite runSilhouettePreviewTests menguji pembantu resolusi kerja
+// pratinjau (computePreviewDimensions) dan inti mask murni
+// (computeSilhouetteMaskFromPixels) tanpa DOM.
 
 import { vectorizeSilhouette, buildSvgDocument, SIMPLIFICATION_LEVELS } from '../js/modules/vectorEngine.js';
+import {
+  computeSilhouetteMask,
+  computeSilhouetteMaskFromPixels,
+  computePreviewDimensions,
+  PREVIEW_MAX_DIMENSION,
+} from '../js/modules/silhouette.js';
 import { requestXmlExport } from '../js/modules/exportManager.js';
 import { FEATURE_STATUS } from '../js/ui/statusStrip.js';
 
@@ -154,7 +163,7 @@ export function runVectorEngineTests() {
     assertEquals(result.subpaths.filter((s) => s.role === 'hole').length, 1, 'satu lubang');
   });
 
-  test('Piksel yang bersentangan diagonal terpisah menjadi dua komponen', () => {
+  test('Piksel yang bersentuhan diagonal terpisah menjadi dua komponen', () => {
     const mask = makeMask(12, 12, (x, y) => (x === 5 && y === 5) || (x === 6 && y === 6));
     const result = vectorizeSilhouette(mask, { simplification: 'sedang' });
     assertEquals(result.componentCount, 2, 'diagonal bukan satu komponen 4-connectivity');
@@ -401,6 +410,145 @@ export function runVectorEngineTests() {
       ekspor.note && ekspor.note.includes('belum terbukti'),
       'catatan ekspor menyatakan impor nyata belum terbukti: ' + (ekspor && ekspor.note)
     );
+  });
+
+  return {
+    total,
+    passed: total - failures.length,
+    failed: failures.length,
+    failures,
+  };
+}
+
+/* ---------- P1 (v0.4.3): pembantu resolusi kerja pratinjau dan inti mask murni ---------- */
+
+export function runSilhouettePreviewTests() {
+  const failures = [];
+  let total = 0;
+
+  function test(name, fn) {
+    total += 1;
+    try {
+      fn();
+    } catch (error) {
+      failures.push({ name, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  function assert(condition, message) {
+    if (!condition) throw new Error(message || 'Asersi gagal.');
+  }
+
+  function assertEquals(actual, expected, message) {
+    if (actual !== expected) {
+      throw new Error((message || 'Nilai tidak sama.') + ' Diharapkan: ' + expected + '; diperoleh: ' + actual + '.');
+    }
+  }
+
+  function assertThrows(fn, messagePart) {
+    try {
+      fn();
+    } catch (error) {
+      if (messagePart && !(error instanceof Error && error.message.includes(messagePart))) {
+        throw new Error('Pesan kesalahan tidak sesuai: ' + (error && error.message));
+      }
+      return;
+    }
+    throw new Error('Fungsi seharusnya melempar kesalahan.');
+  }
+
+  test('computePreviewDimensions membatasi sisi terpanjang tanpa memperbesar gambar kecil', () => {
+    assertEquals(PREVIEW_MAX_DIMENSION, 700, 'batas dimensi pratinjau');
+    let dims = computePreviewDimensions(1400, 1400);
+    assertEquals(dims.width, 700, 'lebar pratinjau 1400x1400');
+    assertEquals(dims.height, 700, 'tinggi pratinjau 1400x1400');
+    dims = computePreviewDimensions(240, 320);
+    assertEquals(dims.width, 240, 'gambar kecil tidak diperbesar (lebar)');
+    assertEquals(dims.height, 320, 'gambar kecil tidak diperbesar (tinggi)');
+    dims = computePreviewDimensions(1400, 700);
+    assertEquals(dims.width, 700, 'rasio aspek dipertahankan (lebar)');
+    assertEquals(dims.height, 350, 'rasio aspek dipertahankan (tinggi)');
+    dims = computePreviewDimensions(963, 1280, 480);
+    assertEquals(dims.width, 361, 'batas kustom 480: lebar 963*0.375');
+    assertEquals(dims.height, 480, 'batas kustom 480: tinggi 1280*0.375');
+  });
+
+  test('computePreviewDimensions tidak pernah melampaui sumber maupun batas', () => {
+    const sizes = [
+      [1, 1], [1, 5000], [5000, 1], [699, 700], [701, 700], [1400, 900],
+      [900, 1400], [10000, 3333], [3333, 10000], [1280, 720],
+    ];
+    for (const [w, h] of sizes) {
+      const dims = computePreviewDimensions(w, h);
+      assert(dims.width >= 1 && dims.height >= 1, 'dimensi positif untuk ' + w + 'x' + h);
+      assert(dims.width <= w && dims.height <= h, 'tidak memperbesar: ' + w + 'x' + h + ' -> ' + dims.width + 'x' + dims.height);
+      assert(
+        Math.max(dims.width, dims.height) <= Math.max(700, Math.min(PREVIEW_MAX_DIMENSION, Math.max(w, h))),
+        'tidak melampaui batas: ' + w + 'x' + h + ' -> ' + dims.width + 'x' + dims.height
+      );
+    }
+  });
+
+  test('computePreviewDimensions menolak dimensi tidak valid dan batas kustom tak valid jatuh ke bawaan', () => {
+    assertThrows(() => computePreviewDimensions(0, 100), 'Dimensi gambar tidak valid.');
+    assertThrows(() => computePreviewDimensions(-5, 10), 'Dimensi gambar tidak valid.');
+    assertThrows(() => computePreviewDimensions(100.5, 10), 'Dimensi gambar tidak valid.');
+    assertThrows(() => computePreviewDimensions(10), 'Dimensi gambar tidak valid.');
+    const fallback = computePreviewDimensions(1000, 1000, 12.5); // batas pecahan: pakai bawaan
+    assertEquals(fallback.width, 700, 'batas tak valid jatuh ke PREVIEW_MAX_DIMENSION');
+    assertEquals(fallback.height, 700, 'batas tak valid jatuh ke PREVIEW_MAX_DIMENSION');
+  });
+
+  test('computeSilhouetteMaskFromPixels identik dengan computeSilhouetteMask kanvas', () => {
+    const width = 20;
+    const height = 20;
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const i = (y * width + x) * 4;
+        const dx = x - 10;
+        const dy = y - 10;
+        const inside = dx * dx + dy * dy <= 64;
+        data[i] = inside ? 20 : 240;
+        data[i + 1] = inside ? 20 : 240;
+        data[i + 2] = inside ? 30 : 240;
+        data[i + 3] = 255;
+      }
+    }
+    data[(3 * width + 4) * 4 + 3] = 10; // satu piksel transparan di dalam siluet
+    const canvas = {
+      width,
+      height,
+      getContext: () => ({ getImageData: () => ({ data, width, height }) }),
+    };
+    for (const mode of ['gelap', 'terang']) {
+      const fromCanvas = computeSilhouetteMask(canvas, mode, 50);
+      const fromPixels = computeSilhouetteMaskFromPixels(data, width, height, mode, 50);
+      assert(fromCanvas && fromPixels, 'kedua jalur menghasilkan mask untuk mode ' + mode);
+      assertEquals(fromPixels.width, width, 'lebar mask mode ' + mode);
+      assertEquals(fromPixels.height, height, 'tinggi mask mode ' + mode);
+      for (let i = 0; i < fromCanvas.mask.length; i += 1) {
+        assertEquals(fromPixels.mask[i], fromCanvas.mask[i], 'piksel mask ' + i + ' mode ' + mode);
+      }
+    }
+    const gelap = computeSilhouetteMaskFromPixels(data, width, height, 'gelap', 50);
+    assertEquals(gelap.mask[3 * width + 4], 0, 'piksel transparan dianggap luar');
+    let insideCount = 0;
+    for (let i = 0; i < gelap.mask.length; i += 1) if (gelap.mask[i] > 0) insideCount += 1;
+    assert(insideCount > 100, 'siluet lingkaran terdeteksi: ' + insideCount + ' piksel');
+  });
+
+  test('computeSilhouetteMaskFromPixels menolak data piksel tidak sesuai', () => {
+    assertThrows(
+      () => computeSilhouetteMaskFromPixels(new Uint8ClampedArray(10), 4, 4, 'gelap', 50),
+      'Data piksel tidak sesuai'
+    );
+    assertThrows(
+      () => computeSilhouetteMaskFromPixels(null, 4, 4, 'gelap', 50),
+      'Data piksel tidak sesuai'
+    );
+    const exact = computeSilhouetteMaskFromPixels(new Uint8ClampedArray(16 * 4), 4, 4, 'gelap', 50);
+    assert(exact && exact.mask.length === 16, 'panjang pas diterima');
   });
 
   return {

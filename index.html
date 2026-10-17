@@ -36,7 +36,7 @@
       <section class="page" id="page-studio" aria-label="Studio">
 
         <div class="hero">
-          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.4.2</span></p>
+          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.4.3</span></p>
           <h1 class="hero-title">Ubah gambar menjadi <em>vektor beranimasi</em>.</h1>
           <p class="hero-sub">Ubah gambar menjadi siluet vektor, jelajahi gaya animasi, dan siapkan karya untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban Anda — tanpa akun, tanpa unggahan ke server.</p>
           <div class="hero-cta">
@@ -231,7 +231,7 @@
                 <p class="field-note">Tingkat penyederhanaan mengontrol pengurangan titik kontur pada hasil SVG.</p>
               </div>
 
-              <p class="panel-note">Pratinjau raster dan hasil vektor SVG dihitung lokal dari mask siluet. Ekspor menghasilkan XML statis dari kontur ini; keyframe animasi menyusul (lihat docs/SDD.md).</p>
+              <p class="panel-note">Pratinjau raster dan hasil vektor SVG dihitung lokal dari mask siluet pada resolusi kerja pratinjau (maks 700 px) agar tetap responsif; ekspor menghitung ulang pada resolusi penuh dan menghasilkan XML statis dari kontur ini; keyframe animasi menyusul (lihat docs/SDD.md).</p>
             </section>
 
             <section class="card panel panel-animation" aria-labelledby="animation-panel-title">
@@ -363,8 +363,8 @@
               </thead>
               <tbody>
                 <tr><td>Impor dan Normalisasi Gambar</td><td><span class="badge badge-ok">Tersedia</span></td><td>PNG, JPG, WebP; dinormalisasi hingga 1400 piksel.</td></tr>
-                <tr><td>Pemrosesan Siluet (raster)</td><td><span class="badge badge-ok">Tersedia</span></td><td>Ambang luminansi, mode gelap/terang, warna siluet.</td></tr>
-                <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan).</td></tr>
+                <tr><td>Pemrosesan Siluet (raster)</td><td><span class="badge badge-ok">Tersedia</span></td><td>Ambang luminansi, mode gelap/terang, warna siluet; pratinjau dihitung pada resolusi kerja maks 700 px (P1), ekspor resolusi penuh.</td></tr>
+                <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan); tabel tepi bit-packed tanpa perubahan keluaran (P1).</td></tr>
                 <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas, pada raster dan vektor.</td></tr>
                 <tr><td>Desain Antarmuka (v0.3.0)</td><td><span class="badge badge-ok">Tersedia</span></td><td>DS-1: identitas visual Imperfect by Design; fungsionalitas pipeline tidak berubah.</td></tr>
                 <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1/AM-2/AM-3: satu bentuk statis dari kontur vektor; struktur scene mengikuti pola ekspor asli (prolog, precompose, retime, mediaFillMode); outline pada tag path sesuai parser asli Alight Motion; keyframe menyusul (AN-1).</td></tr>
@@ -391,7 +391,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.4.2 — outline shape pada tag path sesuai parser asli</span>
+        <span class="footer-version">v0.4.3 — pratinjau siluet dan vektor dioptimalkan (P1)</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>
