@@ -548,6 +548,143 @@ export function runAmAdapterTests() {
     assert(validateAlightMotionXml(xml).valid === true, 'XML cincin+pulau lulus validator');
   });
 
+  /* ---------- AM-5 (v0.5.0): mode garis centerline dan warna per komponen ---------- */
+
+  test('AM-5: componentColors mode isi menulis fillColor berbeda per layer komponen', () => {
+    const xml = buildAlightMotionXml(makeTwoComponentVectorData(), {
+      ...OPTIONS,
+      componentColors: ['#E61923', '#2846E1'],
+    });
+    const shapes = splitByShape(xml);
+    assert(shapes.length === 2, 'dua layer komponen');
+    assertIncludes(shapes[0], '<fillColor value="#FFE61923"/>', 'fillColor layer A = warna komponen A');
+    assertIncludes(shapes[1], '<fillColor value="#FF2846E1"/>', 'fillColor layer B = warna komponen B');
+    assert(!xml.includes('#FF3B82F6'), 'warna global tidak dipakai bila componentColors tersedia');
+    assert(validateAlightMotionXml(xml).valid === true, 'XML warna per komponen lulus validator');
+  });
+
+  test('AM-5: mode garis menulis satu shape per centerline dengan path-stroke tanpa Z', () => {
+    const centerlineData = {
+      ok: true,
+      empty: false,
+      width: 100,
+      height: 80,
+      lines: [
+        { points: [[10, 10], [10, 60]], closed: false, width: 2.5, componentIndex: 0 },
+        { points: [[50, 40], [90, 40], [90, 70]], closed: false, width: 1.5, componentIndex: 1 },
+      ],
+    };
+    const xml = buildAlightMotionXml(makeTwoComponentVectorData(), {
+      ...OPTIONS,
+      representation: 'garis',
+      centerlineData,
+    });
+    assert((xml.match(/<shape /g) || []).length === 2, 'satu layer per garis');
+    assert((xml.match(/<path /g) || []).length === 2, 'satu tag path per garis');
+    assert(!xml.includes('Z'), 'path garis tanpa penutup Z');
+    assertIncludes(
+      xml,
+      '<path-stroke direction="centered" end-size="1.500000"><size value="2.500000"/></path-stroke>',
+      'path-stroke garis pertama memuat tebal pita'
+    );
+    assertIncludes(
+      xml,
+      '<path-stroke direction="centered" end-size="1.500000"><size value="1.500000"/></path-stroke>',
+      'path-stroke garis kedua memuat tebal pita'
+    );
+    assertIncludes(xml, '<location value="10.000000,35.000000,0.000000"/>', 'pivot garis pertama = pusat bbox garis');
+    assertIncludes(xml, '<location value="70.000000,55.000000,0.000000"/>', 'pivot garis kedua = pusat bbox garis');
+    assertIncludes(xml, 'M 0 -25L 0 25L 0 -25', 'path garis pertama digeser ke pivot dan mengulang titik awal');
+    assertIncludes(xml, 'M -20 -15L 20 -15L 20 15L -20 -15', 'path garis kedua digeser ke pivot dan mengulang titik awal');
+    assertIncludes(xml, '<fillColor value="#FF3B82F6"/>', 'mode garis tanpa componentColors memakai warna global');
+    assert(validateAlightMotionXml(xml).valid === true, 'XML mode garis lulus validator');
+  });
+
+  test('AM-5: mode garis tanpa centerlineData gagal jujur', () => {
+    assertThrows(
+      () => buildAlightMotionXml(makeVectorData(), { ...OPTIONS, representation: 'garis' }),
+      'Data garis',
+      'mode garis tanpa data centerline'
+    );
+  });
+
+  test('AM-5: componentColors dengan panjang tidak sesuai jumlah komponen ditolak', () => {
+    assertThrows(
+      () => buildAlightMotionXml(makeTwoComponentVectorData(), { ...OPTIONS, componentColors: ['#E61923'] }),
+      'componentColors',
+      'componentColors lebih pendek dari jumlah komponen'
+    );
+    assertThrows(
+      () => buildAlightMotionXml(makeVectorData(), { ...OPTIONS, componentColors: ['#E61923', '#2846E1'] }),
+      'componentColors',
+      'componentColors lebih panjang dari jumlah komponen'
+    );
+  });
+
+  /* ---------- EX (v0.5.0): mode warna asli dan mode garis pada pipeline ---------- */
+
+  test('EX: warna asli (CV-1) mensampling warna dominan piksel sumber per komponen', () => {
+    const canvas = makeFakeCanvas(40, 20, (x, y) => {
+      const da = (x - 10) * (x - 10) + (y - 10) * (y - 10);
+      const db = (x - 30) * (x - 30) + (y - 10) * (y - 10);
+      if (da <= 16) return [230, 25, 35, 255];
+      if (db <= 16) return [40, 70, 225, 255];
+      return [240, 240, 240, 255];
+    });
+    const result = requestXmlExport({
+      image: { name: 'uji.png', canvas },
+      vector: { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' },
+      exportColorMode: 'asli',
+      exportName: 'warna-asli',
+    });
+    assert(result.ok === true, 'ekspor warna asli berhasil: ' + (result.message || ''));
+    const shapes = splitByShape(result.xml);
+    assert(shapes.length === 2, 'dua komponen menghasilkan dua layer');
+    assertIncludes(shapes[0], '<fillColor value="#FFE61923"/>', 'warna disk merah tersampling per komponen');
+    assertIncludes(shapes[1], '<fillColor value="#FF2846E1"/>', 'warna disk biru tersampling per komponen');
+    assert(!result.xml.includes('#FF3B82F6'), 'warna global tidak dipakai pada mode warna asli');
+    assert(validateAlightMotionXml(result.xml).valid === true, 'XML warna asli lulus validator');
+  });
+
+  test('EX: mode garis (VE-3) mengekspor pita sebagai satu layer centerline dengan warna asli', () => {
+    const canvas = makeFakeCanvas(20, 30, (x, y) => {
+      const strip = x >= 3 && x <= 5 && y >= 3 && y <= 26;
+      return strip ? [20, 30, 30, 255] : [240, 240, 240, 255];
+    });
+    const result = requestXmlExport({
+      image: { name: 'uji.png', canvas },
+      vector: { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' },
+      exportRepresentation: 'garis',
+      exportColorMode: 'asli',
+      exportName: 'garis-pita',
+    });
+    assert(result.ok === true, 'ekspor mode garis berhasil: ' + (result.message || ''));
+    assert((result.xml.match(/<shape /g) || []).length === 1, 'satu pita menghasilkan satu layer garis');
+    assertIncludes(
+      result.xml,
+      '<path-stroke direction="centered" end-size="1.500000"><size value="3.600000"/></path-stroke>',
+      'path-stroke memuat tebal pita (perkiraan area/panjang skeleton = 3.6)'
+    );
+    assertIncludes(result.xml, '<fillColor value="#FF141E1E"/>', 'warna asli pita tersampling pada layer garis');
+    assert(!result.xml.includes('Z'), 'path garis tanpa penutup Z');
+    assert(validateAlightMotionXml(result.xml).valid === true, 'XML mode garis lulus validator');
+  });
+
+  test('EX: mode garis pada bercak padat tanpa goresan layak gagal jujur', () => {
+    const canvas = makeFakeCanvas(20, 20, (x, y) => {
+      const block = x >= 8 && x <= 11 && y >= 8 && y <= 11;
+      return block ? [20, 20, 30, 255] : [240, 240, 240, 255];
+    });
+    const result = requestXmlExport({
+      image: { name: 'uji.png', canvas },
+      vector: { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' },
+      exportRepresentation: 'garis',
+      exportName: 'bercak',
+    });
+    assert(result.ok === false, 'ekspor mode garis pada bercak tanpa goresan layak harus gagal');
+    assertIncludes(result.message, 'Tidak ada garis', 'pesan gagal menyebut ketiadaan garis');
+  });
+
   return {
     total,
     passed: total - failures.length,

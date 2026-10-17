@@ -1,12 +1,18 @@
 // js/modules/exportManager.js — Orkestrasi pipeline ekspor.
-// Tahap yang berjalan nyata: mask dihitung ulang dari gambar dan pengaturan saat
-// tombol ditekan (tanpa state kedaluwarsa), lalu divectorisasi (VE-1), lalu
+// Tahap yang berjalan nyata (v0.5.0): piksel sumber dibaca SEKALI saat tombol
+// ditekan (tanpa state kedaluwarsa), mask siluet dihitung dari piksel itu
+// (VE-1), lalu vektorisasi kontur. Mode representasi "isi" menulis outline
+// terisi per komponen (AM-4); mode "garis" mengekstraksi centerline per goresan
+// (VE-3). Mode warna "pilihan" memakai satu warna global; mode "asli"
+// mensampling warna dominan piksel sumber per komponen (CV-1). Hasil
 // diserialisasi menjadi XML Alight Motion (AM-1) dan divalidasi (XV-1).
-// Keluaran berupa bentuk statis tanpa keyframe (AN-1 belum dikerjakan);
-// kompatibilitas impor belum diuji (TS-1) — tidak ada klaim kompatibilitas.
+// Batas jujur: keluaran berupa bentuk statis tanpa keyframe (AN-1 belum
+// dikerjakan); mode garis dan warna asli belum diuji pada perangkat nyata.
 
-import { computeSilhouetteMask } from './silhouette.js';
+import { getCanvasPixelData, computeSilhouetteMaskFromPixels } from './silhouette.js';
 import { vectorizeSilhouette } from './vectorEngine.js';
+import { extractCenterlines } from './centerline.js';
+import { sampleComponentColors } from './colorSampling.js';
 import { buildAlightMotionXml } from './amAdapter.js';
 import { validateAlightMotionXml } from './xmlValidation.js';
 
@@ -18,8 +24,19 @@ export function requestXmlExport(state) {
         message: 'Unggah gambar terlebih dahulu sebelum mengekspor.',
       };
     }
-    const mask = computeSilhouetteMask(
-      state.image.canvas,
+    const representation = state.exportRepresentation === 'garis' ? 'garis' : 'isi';
+    const colorMode = state.exportColorMode === 'asli' ? 'asli' : 'pilihan';
+    const pixelData = getCanvasPixelData(state.image.canvas);
+    if (!pixelData) {
+      return {
+        ok: false,
+        message: 'Piksel gambar tidak dapat dibaca; pastikan gambar telah selesai dimuat.',
+      };
+    }
+    const mask = computeSilhouetteMaskFromPixels(
+      pixelData.data,
+      pixelData.width,
+      pixelData.height,
       state.vector.mode,
       state.vector.threshold
     );
@@ -33,7 +50,26 @@ export function requestXmlExport(state) {
     }
     const exportOptions = {
       color: state.vector.color,
+      representation,
     };
+    if (colorMode === 'asli') {
+      exportOptions.componentColors = sampleComponentColors(
+        mask,
+        { data: pixelData.data, width: pixelData.width, height: pixelData.height },
+        vectorData
+      );
+    }
+    if (representation === 'garis') {
+      const centerlineData = extractCenterlines(mask, vectorData);
+      if (centerlineData.empty) {
+        return {
+          ok: false,
+          message:
+            'Tidak ada garis yang dapat diekstraksi pada ambang saat ini. Mode garis paling cocok untuk line art dengan goresan tipis; untuk bentuk terisi gunakan mode isi, atau ubah ambang lalu coba lagi.',
+        };
+      }
+      exportOptions.centerlineData = centerlineData;
+    }
     if (typeof state.exportName === 'string' && state.exportName.trim().length > 0) {
       exportOptions.title = state.exportName;
     }

@@ -42,5 +42,11 @@ export const initialState = {
   playback: 'idle', // 'idle' | 'playing' | 'paused'
   playbackEpoch: 0,
   exportName: 'naze-vector-siluet',
+  // AM-5 (v0.5.0): mode representasi ekspor — 'isi' (outline terisi per
+  // komponen, AM-4) atau 'garis' (centerline per goresan, VE-3).
+  exportRepresentation: 'isi',
+  // CV-1 (v0.5.0): mode warna ekspor — 'pilihan' (satu warna global) atau
+  // 'asli' (sampling warna dominan piksel sumber per komponen).
+  exportColorMode: 'pilihan',
   exportMessage: null,
 };

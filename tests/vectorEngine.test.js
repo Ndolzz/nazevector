@@ -13,7 +13,9 @@ import {
   computeSilhouetteMaskFromPixels,
   computePreviewDimensions,
   PREVIEW_MAX_DIMENSION,
+  labelMaskRegions,
 } from '../js/modules/silhouette.js';
+import { extractCenterlines } from '../js/modules/centerline.js';
 import { requestXmlExport } from '../js/modules/exportManager.js';
 import { FEATURE_STATUS } from '../js/ui/statusStrip.js';
 
@@ -549,6 +551,161 @@ export function runSilhouettePreviewTests() {
     );
     const exact = computeSilhouetteMaskFromPixels(new Uint8ClampedArray(16 * 4), 4, 4, 'gelap', 50);
     assert(exact && exact.mask.length === 16, 'panjang pas diterima');
+  });
+
+  return {
+    total,
+    passed: total - failures.length,
+    failed: failures.length,
+    failures,
+  };
+}
+
+/* ---------- VE-3 (v0.5.0): ekstraksi garis centerline ---------- */
+
+export function runCenterlineTests() {
+  const failures = [];
+  let total = 0;
+
+  function test(name, fn) {
+    total += 1;
+    try {
+      fn();
+    } catch (error) {
+      failures.push({ name, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  function assert(condition, message) {
+    if (!condition) throw new Error(message || 'Asersi gagal.');
+  }
+
+  const VECTOR_SETTINGS = { mode: 'gelap', threshold: 50, simplification: 'rendah', color: '#3B82F6' };
+
+  function maskFromPixels(width, height, inside) {
+    const mask = new Uint8ClampedArray(width * height);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        mask[y * width + x] = inside(x, y) ? 255 : 0;
+      }
+    }
+    return { mask, width, height };
+  }
+
+  // Jalur lengkap mask -> vektor -> centerline, meniru pemakaian exportManager.
+  function extractFromMask(maskData) {
+    const vectorData = vectorizeSilhouette(maskData, VECTOR_SETTINGS);
+    assert(vectorData.empty === false, 'siluet terdeteksi untuk ekstraksi garis');
+    return extractCenterlines(maskData, vectorData);
+  }
+
+  test('labelMaskRegions memberi dua label berbeda untuk dua disk terpisah', () => {
+    const maskData = maskFromPixels(40, 20, (x, y) => {
+      const da = (x - 10) * (x - 10) + (y - 10) * (y - 10);
+      const db = (x - 30) * (x - 30) + (y - 10) * (y - 10);
+      return da <= 16 || db <= 16;
+    });
+    const labels = labelMaskRegions(maskData);
+    const distinct = new Set();
+    for (const label of labels) {
+      if (label !== 0) distinct.add(label);
+    }
+    assert(distinct.size === 2, 'dua region terpisah berlabel berbeda: ' + distinct.size);
+  });
+
+  test('labelMaskRegions memisahkan cincin dari pulau di dalam lubangnya', () => {
+    const maskData = maskFromPixels(21, 21, (x, y) => {
+      const r2 = (x - 10) * (x - 10) + (y - 10) * (y - 10);
+      return (r2 >= 36 && r2 <= 100) || r2 <= 4;
+    });
+    const labels = labelMaskRegions(maskData);
+    const distinct = new Set();
+    for (const label of labels) {
+      if (label !== 0) distinct.add(label);
+    }
+    assert(distinct.size === 2, 'cincin dan pulau = dua region: ' + distinct.size);
+  });
+
+  test('pita lurus 3 px menghasilkan satu garis terbuka dua titik dengan lebar sekitar 3', () => {
+    const maskData = maskFromPixels(10, 30, (x, y) => x >= 3 && x <= 5 && y >= 2 && y <= 27);
+    const result = extractFromMask(maskData);
+    assert(result.ok === true && result.empty === false, 'pita menghasilkan garis');
+    assert(result.lines.length === 1, 'tepat satu garis: ' + result.lines.length);
+    const line = result.lines[0];
+    assert(line.closed === false, 'garis pita lurus terbuka');
+    assert(line.points.length === 2, 'dua titik setelah RDP: ' + line.points.length);
+    assert(
+      Math.abs(line.points[0][0] - 4.5) < 1e-9 && Math.abs(line.points[1][0] - 4.5) < 1e-9,
+      'centerline di tengah pita (x=4.5): ' + line.points[0][0] + ',' + line.points[1][0]
+    );
+    assert(
+      Math.abs(line.points[0][1] - 3.5) < 1e-9 && Math.abs(line.points[1][1] - 25.5) < 1e-9,
+      'ujung garis menyusut maksimal satu piksel dari ujung pita (y=3.5 dan y=25.5): ' +
+        line.points[0][1] + ',' + line.points[1][1]
+    );
+    assert(line.width > 3 && line.width < 4, 'lebar garis mendekati tebal pita (3): ' + line.width);
+  });
+
+  test('cincin menghasilkan loop tertutup', () => {
+    const maskData = maskFromPixels(21, 21, (x, y) => {
+      const r2 = (x - 10) * (x - 10) + (y - 10) * (y - 10);
+      return r2 >= 36 && r2 <= 100;
+    });
+    const result = extractFromMask(maskData);
+    assert(result.empty === false, 'cincin menghasilkan garis');
+    assert(result.lines.length === 1, 'skeleton cincin utuh: ' + result.lines.length);
+    assert(
+      result.lines.every((line) => line.closed === true),
+      'cincin diekstraksi sebagai loop tertutup'
+    );
+  });
+
+  test('dua pita terpisah menghasilkan garis dengan componentIndex berbeda', () => {
+    const maskData = maskFromPixels(20, 30, (x, y) => {
+      const stripA = x >= 2 && x <= 4 && y >= 2 && y <= 27;
+      const stripB = x >= 12 && x <= 14 && y >= 3 && y <= 26;
+      return stripA || stripB;
+    });
+    const result = extractFromMask(maskData);
+    assert(result.lines.length === 2, 'dua garis untuk dua pita: ' + result.lines.length);
+    assert(
+      new Set(result.lines.map((line) => line.componentIndex)).size === 2,
+      'componentIndex berbeda per komponen'
+    );
+  });
+
+  test('simpang T menghasilkan lebih dari dua segmen garis', () => {
+    const maskData = maskFromPixels(20, 30, (x, y) => {
+      const stem = x >= 9 && x <= 11 && y >= 8 && y <= 27;
+      const bar = x >= 4 && x <= 16 && y >= 8 && y <= 10;
+      return stem || bar;
+    });
+    const result = extractFromMask(maskData);
+    assert(result.empty === false, 'simpang menghasilkan garis');
+    assert(result.lines.length >= 3, 'simpang T menghasilkan tiga segmen atau lebih: ' + result.lines.length);
+  });
+
+  test('blok padat tanpa goresan layak menghasilkan keluaran kosong, bukan galat', () => {
+    const maskData = maskFromPixels(20, 20, (x, y) => x >= 8 && x <= 11 && y >= 8 && y <= 11);
+    const result = extractFromMask(maskData);
+    assert(result.ok === true, 'ekstraksi blok padat tidak melempar');
+    assert(result.empty === true, 'blok padat tanpa rantai layak (kosong)');
+  });
+
+  test('persegi besar padat diekstraksi tanpa kegagalan dengan struktur valid', () => {
+    const maskData = maskFromPixels(60, 60, (x, y) => x >= 10 && x <= 49 && y >= 10 && y <= 49);
+    const result = extractFromMask(maskData);
+    assert(result.ok === true, 'ekstraksi persegi besar tidak melempar');
+    assert(result.width === 60 && result.height === 60, 'dimensi kanvas dipertahankan');
+    assert(Array.isArray(result.lines), 'keluaran berupa daftar garis');
+    for (const line of result.lines) {
+      assert(line.points.length >= 2, 'tiap garis memuat minimal dua titik');
+      assert(line.width >= 1, 'lebar garis minimal 1');
+      assert(
+        line.points.every((p) => p[0] >= 0 && p[0] <= 60 && p[1] >= 0 && p[1] <= 60),
+        'titik garis berada dalam kanvas'
+      );
+    }
   });
 
   return {

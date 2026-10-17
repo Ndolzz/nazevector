@@ -43,17 +43,27 @@ export function computePreviewDimensions(
 // Jalur resolusi penuh: dipakai oleh ekspor (exportManager) dan oleh pratinjau
 // bila gambar sudah di bawah batas pratinjau.
 export function computeSilhouetteMask(sourceCanvas, mode, thresholdPercent) {
+  const pixelData = getCanvasPixelData(sourceCanvas);
+  if (!pixelData) return null;
+  return computeSilhouetteMaskFromPixels(
+    pixelData.data,
+    pixelData.width,
+    pixelData.height,
+    mode,
+    thresholdPercent
+  );
+}
+
+// getCanvasPixelData(sourceCanvas) -> { data, width, height } | null
+// Membaca piksel RGBA kanvas sekali; dipakai jalur ekspor agar mask dan
+// sampling warna asli (CV-1) membaca sumber piksel yang sama.
+export function getCanvasPixelData(sourceCanvas) {
+  if (!sourceCanvas || typeof sourceCanvas.getContext !== 'function') return null;
   const context = sourceCanvas.getContext('2d', { willReadFrequently: true });
   if (!context) return null;
   const { width, height } = sourceCanvas;
   const imageData = context.getImageData(0, 0, width, height);
-  return computeSilhouetteMaskFromPixels(
-    imageData.data,
-    width,
-    height,
-    mode,
-    thresholdPercent
-  );
+  return { data: imageData.data, width, height };
 }
 
 // computeSilhouetteMaskFromPixels(pixels, width, height, mode, thresholdPercent)
@@ -117,4 +127,85 @@ function hexToRgb(hex) {
     g: (value >> 8) & 255,
     b: value & 255,
   };
+}
+
+/* ---------- Pelabelan region mask (VE-3 + CV-1, v0.5.0) ---------- */
+
+// labelMaskRegions(maskData) -> Int32Array label per piksel (0 = luar).
+// Flood fill tumpukan (4-tetangga) dengan urutan pindai baris-maju sehingga
+// label deterministik; satu region tersambung = satu label. Region pada
+// mask identik dengan komponen siluet yang diberi layer oleh AM-4.
+export function labelMaskRegions(maskData) {
+  if (!maskData || !maskData.mask || typeof maskData.mask.length !== 'number') {
+    throw new Error('Mask tidak tersedia untuk pelabelan region.');
+  }
+  const { mask, width, height } = maskData;
+  if (mask.length !== width * height) {
+    throw new Error('Ukuran mask tidak sesuai dengan dimensi.');
+  }
+  const labels = new Int32Array(width * height);
+  const stack = new Int32Array(width * height);
+  let nextLabel = 0;
+  for (let start = 0; start < mask.length; start += 1) {
+    if (mask[start] === 0 || labels[start] !== 0) continue;
+    nextLabel += 1;
+    let top = 0;
+    stack[top] = start;
+    top += 1;
+    labels[start] = nextLabel;
+    while (top > 0) {
+      const index = stack[top - 1];
+      top -= 1;
+      const x = index % width;
+      if (x > 0 && mask[index - 1] !== 0 && labels[index - 1] === 0) {
+        labels[index - 1] = nextLabel;
+        stack[top] = index - 1;
+        top += 1;
+      }
+      if (x < width - 1 && mask[index + 1] !== 0 && labels[index + 1] === 0) {
+        labels[index + 1] = nextLabel;
+        stack[top] = index + 1;
+        top += 1;
+      }
+      if (index >= width && mask[index - width] !== 0 && labels[index - width] === 0) {
+        labels[index - width] = nextLabel;
+        stack[top] = index - width;
+        top += 1;
+      }
+      if (index < mask.length - width && mask[index + width] !== 0 && labels[index + width] === 0) {
+        labels[index + width] = nextLabel;
+        stack[top] = index + width;
+        top += 1;
+      }
+    }
+  }
+  return labels;
+}
+
+// findRegionLabel(maskData, labels, point) -> label region yang memuat titik.
+// Titik kontur berada pada batas retak antara piksel dalam dan luar; kandidat
+// piksel di sekitar titik dicoba sampai satu ditemukan dalam mask. Hasil 0
+// berarti tidak ditemukan (dipanggil tidak pernah terjadi pada keluaran
+// vectorEngine yang valid; pemanggil menanganinya secara eksplisit).
+export function findRegionLabel(maskData, labels, point) {
+  if (!Array.isArray(point) || !Number.isFinite(point[0]) || !Number.isFinite(point[1])) {
+    return 0;
+  }
+  const { mask, width, height } = maskData;
+  const baseX = Math.floor(point[0]);
+  const baseY = Math.floor(point[1]);
+  const candidates = [
+    [baseX, baseY],
+    [baseX - 1, baseY],
+    [baseX, baseY - 1],
+    [baseX - 1, baseY - 1],
+    [baseX + 1, baseY],
+    [baseX, baseY + 1],
+  ];
+  for (const [x, y] of candidates) {
+    if (x < 0 || y < 0 || x >= width || y >= height) continue;
+    const index = y * width + x;
+    if (mask[index] !== 0 && labels[index] !== 0) return labels[index];
+  }
+  return 0;
 }

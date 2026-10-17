@@ -1,4 +1,4 @@
-// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3 + AM-4, v0.4.4).
+// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3 + AM-4 + AM-5, v0.5.0).
 // Membangun dokumen scene XML Alight Motion dari VectorPathData (keluaran VE-1):
 // satu elemen <shape> non-live (imported) per komponen siluet — pemisah layer
 // (AM-4) — masing-masing dengan outline pada <path d="..."/> (AM-3) berisi
@@ -25,12 +25,23 @@
 // ekspor asli Proyek Baru 19.xml memuat path rect media 720x1280 dari (-360,-640)
 // sampai (360,640) terpusat (0,0) dengan location menentukan posisi di kanvas,
 // sehingga kontur digeser (-width/2, -height/2) dan location diisi pusat kanvas.
+// AM-5 (v0.5.0): dua opsi ekspor tambahan. (1) Mode representasi: "isi"
+// (default, pola AM-4: outline pita terisi pada <path d="...Z"/>) atau "garis"
+// (centerline per goresan: <path d="M ...L ..."/> TANPA Z dengan pengulangan
+// titik awal, plus <path-stroke direction="centered" end-size="1.500000"><size
+// value="..."/></path-stroke> — persis pola shape "Bentuk 1" pada ekspor asli
+// Proyek Baru 19.xml yang memuat path stroke tanpa Z; tebal garis diisi dari
+// lebar pita hasil ekstraksi centerline). (2) Mode warna: satu warna global
+// (options.color) atau warna asli per komponen (options.componentColors,
+// hasil sampling CV-1) yang ditulis sebagai fillColor per layer. Batas jujur:
+// semantik warna path-stroke pada perangkat nyata belum terverifikasi —
+// fillColor tetap ditulis dan hasil mode garis menunggu uji lapangan.
 
 export const AM_ADAPTER_STATUS = {
   id: 'AM',
   label: 'Adapter XML Alight Motion',
   reason:
-    'Menghasilkan XML scene berisi satu layer shape statis per komponen siluet (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); tampilan pada perangkat nyata terbukti (TS-1, uji lapangan).',
+    'Menghasilkan XML scene berisi satu layer shape statis per komponen siluet (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); tampilan pada perangkat nyata terbukti untuk mode isi (TS-1, uji lapangan). Mode garis (path-stroke) dan warna asli per layer tersedia sejak v0.5.0 (AM-5) dan menunggu uji lapangan.',
 };
 
 const SCENE_DEFAULTS = {
@@ -61,52 +72,24 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     options.modifiedTime !== undefined ? options.modifiedTime : Date.now(),
     'modifiedTime'
   );
-  const fillColor = resolveFillColor(options.color);
-
-  // AM-4 (v0.4.4): setiap komponen siluet menjadi satu <shape> — satu layer
-  // terpisah di Alight Motion. Lubang tetap bergabung dengan kontur luarnya
-  // pada satu atribut d tanpa separator antar kontur (token "ZM", pola
-  // serializer asli, AM-3) sehingga lubang tetap berada pada layer komponen
-  // yang benar; pulau di dalam lubang menjadi komponen (dan layer) tersendiri.
-  // Pivot layer (transform.location) diisi pusat bbox kontur luar komponen dan
-  // kontur digeser ke pivot itu: posisi keseluruhan siluet tidak berubah,
-  // namun tiap bagian dapat diputar/diskalakan pada pusatnya sendiri di
-  // Alight Motion.
+  const globalColor = resolveFillColor(options.color);
+  const representation = resolveRepresentation(options.representation);
   const components = groupSubpathsByComponent(subpaths);
+  const componentColors = resolveComponentColors(options.componentColors, components.length);
 
   let shapes = '';
-  for (let index = 0; index < components.length; index += 1) {
-    const component = components[index];
-    const id = index + 1;
-    const box = ringBbox(component.outer.points);
-    const pivotX = (box.minX + box.maxX) / 2;
-    const pivotY = (box.minY + box.maxY) / 2;
-    const outline = [component.outer]
-      .concat(component.holes)
-      .map((subpath) => pathD(subpath.points, pivotX, pivotY))
-      .join('');
-    shapes +=
-      '<shape id="' +
-      id +
-      '" label="Shape ' +
-      id +
-      '" startTime="0" endTime="' +
-      totalTime +
-      '" fillType="color" mediaFillMode="fill">' +
-      '<transform>' +
-      '<location value="' +
-      formatNumber(pivotX) +
-      ',' +
-      formatNumber(pivotY) +
-      ',0.000000"/>' +
-      '</transform>' +
-      '<fillColor value="' +
-      fillColor +
-      '"/>' +
-      '<path d="' +
-      outline +
-      '"/>' +
-      '</shape>';
+  if (representation === 'garis') {
+    shapes = buildCenterlineShapes(options.centerlineData, {
+      totalTime,
+      globalColor,
+      componentColors,
+    });
+  } else {
+    shapes = buildFilledShapes(components, {
+      totalTime,
+      globalColor,
+      componentColors,
+    });
   }
 
   return (
@@ -139,6 +122,140 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     shapes +
     '</scene>'
   );
+}
+
+function buildFilledShapes(components, settings) {
+  let shapes = '';
+  for (let index = 0; index < components.length; index += 1) {
+    const component = components[index];
+    const id = index + 1;
+    const box = ringBbox(component.outer.points);
+    const pivotX = (box.minX + box.maxX) / 2;
+    const pivotY = (box.minY + box.maxY) / 2;
+    const outline = [component.outer]
+      .concat(component.holes)
+      .map((subpath) => pathD(subpath.points, pivotX, pivotY))
+      .join('');
+    const fillColor = componentColorAt(settings, index);
+    shapes +=
+      '<shape id="' +
+      id +
+      '" label="Shape ' +
+      id +
+      '" startTime="0" endTime="' +
+      settings.totalTime +
+      '" fillType="color" mediaFillMode="fill">' +
+      '<transform>' +
+      '<location value="' +
+      formatNumber(pivotX) +
+      ',' +
+      formatNumber(pivotY) +
+      ',0.000000"/>' +
+      '</transform>' +
+      '<fillColor value="' +
+      fillColor +
+      '"/>' +
+      '<path d="' +
+      outline +
+      '"/>' +
+      '</shape>';
+  }
+  return shapes;
+}
+
+// AM-5 mode garis: satu shape (layer) per garis centerline. Path TIDAK ditutup
+// Z dan mengulang titik awal sebagai L terakhir — pola path stroke ekspor asli
+// Proyek Baru 19.xml; tebal garis pada <path-stroke> dari lebar pita hasil
+// ekstraksi VE-3.
+function buildCenterlineShapes(centerlineData, settings) {
+  if (!centerlineData || !Array.isArray(centerlineData.lines)) {
+    throw new Error('Data garis tidak tersedia: mode garis memerlukan hasil ekstraksi centerline.');
+  }
+  if (centerlineData.lines.length === 0) {
+    throw new Error('Data garis tidak tersedia: tidak ada garis yang diekstraksi.');
+  }
+  let shapes = '';
+  for (let index = 0; index < centerlineData.lines.length; index += 1) {
+    const line = validateCenterline(centerlineData.lines[index], index);
+    const id = index + 1;
+    const box = ringBbox(line.points);
+    const pivotX = (box.minX + box.maxX) / 2;
+    const pivotY = (box.minY + box.maxY) / 2;
+    const fillColor = componentColorAt(settings, line.componentIndex);
+    shapes +=
+      '<shape id="' +
+      id +
+      '" label="Shape ' +
+      id +
+      '" startTime="0" endTime="' +
+      settings.totalTime +
+      '" fillType="color" mediaFillMode="fill">' +
+      '<transform>' +
+      '<location value="' +
+      formatNumber(pivotX) +
+      ',' +
+      formatNumber(pivotY) +
+      ',0.000000"/>' +
+      '</transform>' +
+      '<fillColor value="' +
+      fillColor +
+      '"/>' +
+      '<path-stroke direction="centered" end-size="1.500000"><size value="' +
+      formatNumber(line.width) +
+      '"/></path-stroke>' +
+      '<path d="' +
+      polylineD(line.points, pivotX, pivotY) +
+      '"/>' +
+      '</shape>';
+  }
+  return shapes;
+}
+
+function validateCenterline(line, index) {
+  if (
+    !line ||
+    !Array.isArray(line.points) ||
+    line.points.length < 2 ||
+    !line.points.every(
+      (p) => Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1])
+    )
+  ) {
+    throw new Error('Data garis tidak valid pada garis ke-' + (index + 1) + ': titik tidak lengkap.');
+  }
+  if (!Number.isFinite(line.width) || line.width <= 0) {
+    throw new Error('Data garis tidak valid pada garis ke-' + (index + 1) + ': lebar garis tidak valid.');
+  }
+  if (!Number.isInteger(line.componentIndex) || line.componentIndex < 0) {
+    throw new Error('Data garis tidak valid pada garis ke-' + (index + 1) + ': indeks komponen tidak valid.');
+  }
+  return line;
+}
+
+function componentColorAt(settings, componentIndex) {
+  if (settings.componentColors && componentIndex < settings.componentColors.length) {
+    return settings.componentColors[componentIndex];
+  }
+  return settings.globalColor;
+}
+
+function resolveRepresentation(value) {
+  if (value === undefined || value === null) return 'isi';
+  if (value !== 'isi' && value !== 'garis') {
+    throw new Error('Opsi representation tidak valid: harus "isi" atau "garis".');
+  }
+  return value;
+}
+
+function resolveComponentColors(value, componentCount) {
+  if (value === undefined || value === null) return null;
+  if (!Array.isArray(value) || value.length !== componentCount) {
+    throw new Error(
+      'Opsi componentColors tidak valid: panjang daftar warna (' +
+        (Array.isArray(value) ? value.length : 'bukan array') +
+        ') harus sama dengan jumlah komponen (' + componentCount + ').'
+    );
+  }
+  return value.map((color) => resolveFillColor(color));
 }
 
 /* ---------- Validasi dan resolusi input ---------- */
@@ -308,6 +425,19 @@ function pathD(points, offsetX, offsetY) {
     d += 'L ' + (points[i][0] - offsetX) + ' ' + (points[i][1] - offsetY);
   }
   return d + 'L ' + x0 + ' ' + y0 + 'Z';
+}
+
+// polylineD meniru pola path stroke ekspor asli Proyek Baru 19.xml: "M x0 y0"
+// lalu "L x y" per titik, dengan titik awal diulang sebagai L terakhir, TANPA
+// penutup "Z" — garis terbuka pada mode centerline (AM-5).
+function polylineD(points, offsetX, offsetY) {
+  const x0 = points[0][0] - offsetX;
+  const y0 = points[0][1] - offsetY;
+  let d = 'M ' + x0 + ' ' + y0;
+  for (let i = 1; i < points.length; i += 1) {
+    d += 'L ' + (points[i][0] - offsetX) + ' ' + (points[i][1] - offsetY);
+  }
+  return d + 'L ' + x0 + ' ' + y0;
 }
 
 function formatNumber(value) {

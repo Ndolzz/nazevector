@@ -36,7 +36,7 @@
       <section class="page" id="page-studio" aria-label="Studio">
 
         <div class="hero">
-          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.4.4</span></p>
+          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.5.0</span></p>
           <h1 class="hero-title">Ubah gambar menjadi <em>vektor beranimasi</em>.</h1>
           <p class="hero-sub">Ubah gambar menjadi siluet vektor, jelajahi gaya animasi, dan siapkan karya untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban Anda — tanpa akun, tanpa unggahan ke server.</p>
           <div class="hero-cta">
@@ -295,6 +295,22 @@
                 </select>
               </div>
 
+              <div class="field">
+                <label class="field-label" for="export-representation">Representasi hasil</label>
+                <select id="export-representation">
+                  <option value="isi">Isi — bentuk terisi per komponen (pemisah layer)</option>
+                  <option value="garis">Garis — satu garis centerline per goresan (line art)</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="export-color-mode">Warna layer</label>
+                <select id="export-color-mode">
+                  <option value="pilihan">Warna pilihan — satu warna untuk semua layer</option>
+                  <option value="asli">Warna asli — warna dominan gambar per komponen</option>
+                </select>
+              </div>
+
               <div class="export-status" id="export-status">
                 <span class="status-label">Status validasi</span>
                 <span class="badge badge-pending" id="export-validation-badge">Belum divalidasi</span>
@@ -309,7 +325,7 @@
                 <button type="button" class="alert-close" id="export-message-close" aria-label="Tutup pesan">&times;</button>
               </div>
 
-              <p class="panel-note">Ekspor menghasilkan XML proyek Alight Motion berisi satu shape (layer) tersendiri per komponen siluet — pemisah layer (AM-4) — sehingga tiap bagian dapat dipilih dan dianimasikan sendiri di timeline, tanpa keyframe animasi (menyusul pada backlog AN-1). Struktur XML mengikuti pola ekspor asli Alight Motion (prolog, precompose, retime, mediaFillMode), outline ditulis pada tag path sesuai pola parser asli (AM-3), dan lulus validasi struktur lokal; impor serta tampilan shape terbukti pada perangkat nyata (TS-1, Alight Motion 5.0.273 Android), dengan keluaran multi-layer AM-4 sendiri menunggu uji lapangan lanjutan (lihat docs/SDD.md).</p>
+              <p class="panel-note">Ekspor menghasilkan XML proyek Alight Motion dengan dua pilihan mode sejak v0.5.0. Representasi isi: satu shape (layer) tersendiri per komponen siluet — pemisah layer (AM-4) — sehingga tiap bagian (kerah, lengan, badan, dst.) dapat dipilih dan dianimasikan sendiri di timeline; terbukti tampil di perangkat nyata (TS-1). Representasi garis (VE-3): setiap goresan line art ditulis sebagai satu centerline dengan path-stroke, tanpa garis ganda akibat dua tepi pita. Warna layer dapat berupa satu warna pilihan atau warna asli per komponen hasil sampling piksel sumber (CV-1). Keyframe animasi menyusul pada backlog AN-1; mode garis dan warna asli menunggu uji lapangan (lihat docs/SDD.md).</p>
             </section>
 
           </aside>
@@ -367,9 +383,9 @@
                 <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan); tabel tepi bit-packed tanpa perubahan keluaran (P1).</td></tr>
                 <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas, pada raster dan vektor.</td></tr>
                 <tr><td>Desain Antarmuka (v0.3.0)</td><td><span class="badge badge-ok">Tersedia</span></td><td>DS-1: identitas visual Imperfect by Design; fungsionalitas pipeline tidak berubah.</td></tr>
-                <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1/AM-2/AM-3/AM-4: satu layer shape statis per komponen siluet (pemisah layer, pivot per bagian); struktur scene mengikuti pola ekspor asli (prolog, precompose, retime, mediaFillMode); outline pada tag path sesuai parser asli Alight Motion; keyframe menyusul (AN-1).</td></tr>
+                <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1/AM-2/AM-3/AM-4/AM-5: satu layer shape statis per komponen siluet (pemisah layer, pivot per bagian) atau satu layer garis centerline per goresan (path-stroke); struktur scene mengikuti pola ekspor asli (prolog, precompose, retime, mediaFillMode); outline pada tag path sesuai parser asli Alight Motion; keyframe menyusul (AN-1).</td></tr>
                 <tr><td>Validasi XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>XV-1/XV-2: well-formedness, prolog, atribut wajib, pola atribut ekspor asli, ID unik, rentang waktu, format warna.</td></tr>
-                <tr><td>Ekspor XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>EX-1: unduh .xml lokal; impor dan tampilan shape terbukti di lapangan (TS-1); verifikasi lanjutan keluaran multi-layer menyusul.</td></tr>
+                <tr><td>Ekspor XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>EX-1: unduh .xml lokal; mode isi terbukti tampil di lapangan (TS-1); mode garis (VE-3) dan warna asli per komponen (CV-1) tersedia sejak v0.5.0 dan menunggu uji lapangan; verifikasi lanjutan keluaran multi-layer menyusul.</td></tr>
               </tbody>
             </table>
           </div>
@@ -391,7 +407,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.4.4 — pemisah layer per komponen pada ekspor XML (AM-4)</span>
+        <span class="footer-version">v0.5.0 — mode garis centerline (VE-3), warna asli per komponen (CV-1), dan adapter multi-mode (AM-5)</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>

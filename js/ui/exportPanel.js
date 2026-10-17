@@ -1,4 +1,5 @@
-// js/ui/exportPanel.js — Panel ekspor: nama berkas, format, status validasi, unduhan.
+// js/ui/exportPanel.js — Panel ekspor: nama berkas, format, mode representasi
+// (AM-5: isi/garis), mode warna (CV-1: pilihan/asli), status validasi, unduhan.
 // Ekspor XML (EX-1): hasil pipeline diunduh sebagai .xml via Blob lokal.
 // Status validasi lokal disimpan pada variabel closure (bukan state store) agar
 // kontrak state.js tidak berubah; nilai reset saat gambar atau pengaturan berganti
@@ -9,6 +10,8 @@ import { requestXmlExport } from '../modules/exportManager.js';
 
 export function initExportPanel(store) {
   const nameInput = qs('#export-name');
+  const representationSelect = qs('#export-representation');
+  const colorModeSelect = qs('#export-color-mode');
   const validationBadge = qs('#export-validation-badge');
   const btnExport = qs('#btn-export');
   const messageBox = qs('#export-message');
@@ -19,6 +22,12 @@ export function initExportPanel(store) {
 
   nameInput.addEventListener('input', () => {
     store.set({ exportName: nameInput.value });
+  });
+  representationSelect.addEventListener('change', () => {
+    store.set({ exportRepresentation: representationSelect.value });
+  });
+  colorModeSelect.addEventListener('change', () => {
+    store.set({ exportColorMode: colorModeSelect.value });
   });
   messageClose.addEventListener('click', () => {
     store.set({ exportMessage: null });
@@ -52,9 +61,7 @@ export function initExportPanel(store) {
       store.set({
         exportMessage: {
           kind: 'success',
-          text:
-            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal; sejak v0.4.4 setiap komponen siluet ditulis sebagai shape (layer) tersendiri — pemisah layer (AM-4) — sehingga tiap bagian dapat dipilih, digeser, diputar, dan diskalakan sendiri di timeline. ' +
-            'Impor dan tampilan shape terbukti pada perangkat nyata (TS-1, tangkapan layar pengguna pada Alight Motion 5.0.273 Android). Mohon periksa bahwa tiap bagian siluet kini berada pada layer tersendiri (Shape 1, Shape 2, dst.); bila ada bagian yang bergabung atau tampil salah, mohon laporkan.',
+          text: buildSuccessMessage(state),
         },
       });
     } else {
@@ -76,6 +83,12 @@ export function initExportPanel(store) {
   function render(state) {
     if (nameInput.value !== state.exportName) {
       nameInput.value = state.exportName;
+    }
+    if (representationSelect.value !== state.exportRepresentation) {
+      representationSelect.value = state.exportRepresentation;
+    }
+    if (colorModeSelect.value !== state.exportColorMode) {
+      colorModeSelect.value = state.exportColorMode;
     }
     const sanitized = sanitizeFileName(state.exportName);
     btnExport.disabled = !state.image || !sanitized;
@@ -101,6 +114,35 @@ export function initExportPanel(store) {
       );
     }
   }
+}
+
+function buildSuccessMessage(state) {
+  const isCenterline = state.exportRepresentation === 'garis';
+  const isOriginalColor = state.exportColorMode === 'asli';
+  let text =
+    'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal. ';
+  if (isCenterline) {
+    text +=
+      'Mode garis (VE-3): setiap goresan ditulis sebagai satu layer shape berisi centerline dengan path-stroke — tebal garis diperkirakan dari lebar pita sumber dan warna layer ' +
+      (isOriginalColor
+        ? 'mengikuti warna asli gambar (CV-1). '
+        : 'mengikuti warna pilihan. ') +
+      'Batas jujur: struktur path-stroke tanpa penutup Z pada mode garis belum diuji pada perangkat nyata — mohon periksa hasil impor di Alight Motion dan laporkan bila garis tampil salah. ';
+  } else {
+    text +=
+      'Mode isi: setiap komponen siluet ditulis sebagai shape (layer) tersendiri — pemisah layer (AM-4) — sehingga tiap bagian dapat dipilih, digeser, diputar, dan diskalakan sendiri di timeline; ' +
+      (isOriginalColor
+        ? 'warna tiap layer mengikuti warna asli gambar per komponen (CV-1). '
+        : 'warna tiap layer mengikuti warna pilihan. ') +
+      'Impor dan tampilan shape terbukti pada perangkat nyata (TS-1, tangkapan layar pengguna pada Alight Motion 5.0.273 Android). ' +
+      'Mohon periksa bahwa tiap bagian siluet berada pada layer tersendiri (Shape 1, Shape 2, dst.); bila ada bagian yang bergabung atau tampil salah, mohon laporkan. ';
+  }
+  if (isOriginalColor) {
+    text +=
+      'Batas jujur warna asli: warna diambil dari piksel dominan per komponen (tepat untuk desain warna datar, perkiraan untuk gradien/foto). ';
+  }
+  text += 'Keyframe animasi menyusul (AN-1).';
+  return text;
 }
 
 function sanitizeFileName(name) {

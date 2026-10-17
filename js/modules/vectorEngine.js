@@ -141,6 +141,15 @@ export function buildSvgDocument(vectorPathData, colorHex) {
   );
 }
 
+// simplifyPolyline(points, tolerancePx) -> titik poliline hasil RDP.
+// Pembantu murni untuk modul lain (VE-3, v0.5.0): penyederhanaan poliline
+// terbuka dengan titik ujung selalu dipertahankan; memakai implementasi
+// RDP yang sama dengan kontur siluet agar perilaku konsisten.
+export function simplifyPolyline(points, tolerance) {
+  if (!Array.isArray(points) || points.length === 0) return [];
+  return rdpSimplify(points, tolerance);
+}
+
 /* ---------- Validasi input ---------- */
 
 function validateMask(maskData) {
