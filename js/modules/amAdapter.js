@@ -1,6 +1,8 @@
-// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3, v0.4.2).
+// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3 + AM-4, v0.4.4).
 // Membangun dokumen scene XML Alight Motion dari VectorPathData (keluaran VE-1):
-// satu elemen <shape> non-live (imported) dengan outline pada <path d="..."/>.
+// satu elemen <shape> non-live (imported) per komponen siluet — pemisah layer
+// (AM-4) — masing-masing dengan outline pada <path d="..."/> (AM-3) berisi
+// kontur luar komponen beserta seluruh lubangnya.
 // Bukti AM-3 (v0.4.2): parser asli Alight Motion 5.0.273 (dekompilasi,
 // ShapeElementTypeImpl.unserializeElement) hanya membaca outline shape imported
 // dari tag <path> dengan atribut d (konstanta "path"), dan serializer asli
@@ -12,10 +14,12 @@
 // Pola AM-2 (v0.4.1) dipertahankan: prolog <?xml?>, scene memuat
 // precompose/retime/retimeAdaptFPS, setiap elemen memuat mediaFillMode
 // (lihat docs/SDD.md bagian 11 dan 12).
-// Batas jujur: keluaran berupa bentuk statis TANPA keyframe (AN-1 belum dikerjakan)
-// dan impor nyata belum terbukti: ekspor v0.4.1 berhasil diimpor namun shape tidak
-// terlihat; struktur v0.4.2 diselaraskan dengan parser asli namun wajib diuji ulang
-// di perangkat nyata (TS-1).
+// Batas jujur: keluaran berupa bentuk statis TANPA keyframe (AN-1 belum dikerjakan).
+// Bukti lapangan 2026-10-17 (TS-1): ekspor v0.4.2/v0.4.3 terbukti diimpor ke
+// Alight Motion 5.0.273 (Android) dan shape tampil di kanvas dengan titik yang
+// dapat disunting (tangkapan layar pengguna), namun seluruh komponen siluet
+// bergabung pada satu layer "Shape 1" — kekurangan yang diperbaiki AM-4 dengan
+// menulis satu shape (satu layer) per komponen.
 // Asumsi belum terverifikasi penuh (menunggu TS-1): kontur bentuk imported
 // diposisikan terpusat relatif terhadap transform.location — bukti tidak langsung:
 // ekspor asli Proyek Baru 19.xml memuat path rect media 720x1280 dari (-360,-640)
@@ -26,7 +30,7 @@ export const AM_ADAPTER_STATUS = {
   id: 'AM',
   label: 'Adapter XML Alight Motion',
   reason:
-    'Menghasilkan XML scene berisi satu bentuk statis (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); impor nyata belum terbukti (TS-1).',
+    'Menghasilkan XML scene berisi satu layer shape statis per komponen siluet (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); tampilan pada perangkat nyata terbukti (TS-1, uji lapangan).',
 };
 
 const SCENE_DEFAULTS = {
@@ -59,14 +63,51 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
   );
   const fillColor = resolveFillColor(options.color);
 
-  const centerX = width / 2;
-  const centerY = height / 2;
-  // Digabung tanpa separator antar kontur: serializer asli (CubicBSplineKt.toSVGPath
-  // pada CompoundCubicBSpline) memakai joinToString dengan separator kosong sehingga
-  // pola "Z" + "M..." menjadi token "ZM" yang didukung parser asli (AM-3).
-  const outline = subpaths
-    .map((subpath) => pathD(subpath.points, centerX, centerY))
-    .join('');
+  // AM-4 (v0.4.4): setiap komponen siluet menjadi satu <shape> — satu layer
+  // terpisah di Alight Motion. Lubang tetap bergabung dengan kontur luarnya
+  // pada satu atribut d tanpa separator antar kontur (token "ZM", pola
+  // serializer asli, AM-3) sehingga lubang tetap berada pada layer komponen
+  // yang benar; pulau di dalam lubang menjadi komponen (dan layer) tersendiri.
+  // Pivot layer (transform.location) diisi pusat bbox kontur luar komponen dan
+  // kontur digeser ke pivot itu: posisi keseluruhan siluet tidak berubah,
+  // namun tiap bagian dapat diputar/diskalakan pada pusatnya sendiri di
+  // Alight Motion.
+  const components = groupSubpathsByComponent(subpaths);
+
+  let shapes = '';
+  for (let index = 0; index < components.length; index += 1) {
+    const component = components[index];
+    const id = index + 1;
+    const box = ringBbox(component.outer.points);
+    const pivotX = (box.minX + box.maxX) / 2;
+    const pivotY = (box.minY + box.maxY) / 2;
+    const outline = [component.outer]
+      .concat(component.holes)
+      .map((subpath) => pathD(subpath.points, pivotX, pivotY))
+      .join('');
+    shapes +=
+      '<shape id="' +
+      id +
+      '" label="Shape ' +
+      id +
+      '" startTime="0" endTime="' +
+      totalTime +
+      '" fillType="color" mediaFillMode="fill">' +
+      '<transform>' +
+      '<location value="' +
+      formatNumber(pivotX) +
+      ',' +
+      formatNumber(pivotY) +
+      ',0.000000"/>' +
+      '</transform>' +
+      '<fillColor value="' +
+      fillColor +
+      '"/>' +
+      '<path d="' +
+      outline +
+      '"/>' +
+      '</shape>';
+  }
 
   return (
     XML_PROLOG +
@@ -95,23 +136,7 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     '" amplatform="' +
     SCENE_DEFAULTS.amplatform +
     '" retime="freeze" retimeAdaptFPS="false">' +
-    '<shape id="1" label="Shape 1" startTime="0" endTime="' +
-    totalTime +
-    '" fillType="color" mediaFillMode="fill">' +
-    '<transform>' +
-    '<location value="' +
-    formatNumber(centerX) +
-    ',' +
-    formatNumber(centerY) +
-    ',0.000000"/>' +
-    '</transform>' +
-    '<fillColor value="' +
-    fillColor +
-    '"/>' +
-    '<path d="' +
-    outline +
-    '"/>' +
-    '</shape>' +
+    shapes +
     '</scene>'
   );
 }
@@ -183,6 +208,90 @@ function resolveFillColor(colorHex) {
     throw new Error('Warna siluet tidak valid untuk ekspor: gunakan format #RRGGBB.');
   }
   return '#FF' + match[1].toUpperCase();
+}
+
+/* ---------- Pengelompokan komponen (AM-4) ---------- */
+
+// Satu komponen siluet = satu kontur luar beserta seluruh lubang yang berada
+// di dalamnya; menjadi satu <shape> (satu layer Alight Motion). Urutan
+// komponen mengikuti urutan kontur luar pada subpaths (urutan pindai mesin
+// vektorisasi, atas ke bawah) agar keluaran deterministik.
+function groupSubpathsByComponent(subpaths) {
+  const outers = subpaths.filter((subpath) => subpath.role === 'outer');
+  if (outers.length === 0) {
+    throw new Error('Data vektor tidak valid: tidak ada kontur luar siluet untuk diekspor.');
+  }
+  const components = outers.map((outer) => ({ outer, holes: [] }));
+  for (const subpath of subpaths) {
+    if (subpath.role !== 'hole') continue;
+    const host = findHostOuter(subpath, outers);
+    components[outers.indexOf(host)].holes.push(subpath);
+  }
+  return components;
+}
+
+// Lubang dimiliki kontur luar terkecil yang memuat titik representatifnya.
+// Titik representatif = titik pertama kontur lubang: titik ini berada pada
+// pita terisi di antara lubang dan kontur luar pemiliknya serta di luar
+// pulau apa pun yang berada di dalam lubang, sehingga aturan "kontur terkecil
+// yang memuat" tidak memilih pulau sebagai pemilik. Fallback pertahanan bila
+// penyederhanaan RDP menggeser titik keluar dari kontur: kontainmen bbox
+// (pulau memiliki bbox lebih kecil daripada bbox lubang sehingga tetap tidak
+// terpilih). Bila keduanya gagal, kesalahan internal dilempar eksplisit.
+function findHostOuter(hole, outers) {
+  const [px, py] = hole.points[0];
+  let host = null;
+  for (const outer of outers) {
+    if (pointInRing(px, py, outer.points) && (!host || outer.area < host.area)) {
+      host = outer;
+    }
+  }
+  if (host) return host;
+  const holeBox = ringBbox(hole.points);
+  for (const outer of outers) {
+    const box = ringBbox(outer.points);
+    if (
+      box.minX <= holeBox.minX &&
+      box.maxX >= holeBox.maxX &&
+      box.minY <= holeBox.minY &&
+      box.maxY >= holeBox.maxY &&
+      (!host || outer.area < host.area)
+    ) {
+      host = outer;
+    }
+  }
+  if (!host) {
+    throw new Error('Kesalahan internal: lubang siluet tidak berada di dalam kontur luar mana pun.');
+  }
+  return host;
+}
+
+// Uji titik-dalam-cincin dengan aturan paritas (ray casting); kontur berupa
+// cincin titik tanpa duplikat penutup.
+function pointInRing(px, py, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function ringBbox(points) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of points) {
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+  }
+  return { minX, minY, maxX, maxY };
 }
 
 /* ---------- Serialisasi ---------- */

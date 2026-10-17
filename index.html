@@ -36,7 +36,7 @@
       <section class="page" id="page-studio" aria-label="Studio">
 
         <div class="hero">
-          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.4.3</span></p>
+          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.4.4</span></p>
           <h1 class="hero-title">Ubah gambar menjadi <em>vektor beranimasi</em>.</h1>
           <p class="hero-sub">Ubah gambar menjadi siluet vektor, jelajahi gaya animasi, dan siapkan karya untuk Alight Motion. Seluruh pemrosesan berjalan lokal di peramban Anda — tanpa akun, tanpa unggahan ke server.</p>
           <div class="hero-cta">
@@ -309,7 +309,7 @@
                 <button type="button" class="alert-close" id="export-message-close" aria-label="Tutup pesan">&times;</button>
               </div>
 
-              <p class="panel-note">Ekspor menghasilkan XML proyek Alight Motion berisi satu bentuk statis dari kontur siluet — tanpa keyframe animasi (menyusul pada backlog AN-1). Struktur XML mengikuti pola ekspor asli Alight Motion (prolog, precompose, retime, mediaFillMode) dan outline ditulis pada tag path sesuai pola parser asli (AM-3), lulus validasi struktur lokal; impor nyata yang menampilkan shape di kanvas belum terbukti (TS-1). Tidak ada klaim kompatibilitas sebelum uji impor nyata (lihat docs/SDD.md).</p>
+              <p class="panel-note">Ekspor menghasilkan XML proyek Alight Motion berisi satu shape (layer) tersendiri per komponen siluet — pemisah layer (AM-4) — sehingga tiap bagian dapat dipilih dan dianimasikan sendiri di timeline, tanpa keyframe animasi (menyusul pada backlog AN-1). Struktur XML mengikuti pola ekspor asli Alight Motion (prolog, precompose, retime, mediaFillMode), outline ditulis pada tag path sesuai pola parser asli (AM-3), dan lulus validasi struktur lokal; impor serta tampilan shape terbukti pada perangkat nyata (TS-1, Alight Motion 5.0.273 Android), dengan keluaran multi-layer AM-4 sendiri menunggu uji lapangan lanjutan (lihat docs/SDD.md).</p>
             </section>
 
           </aside>
@@ -320,7 +320,7 @@
         <div class="page-head">
           <p class="page-kicker">GAYA GERAK</p>
           <h1 class="page-title">Preset Animasi</h1>
-          <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio, pada pratinjau raster maupun hasil vektor. Penerapan preset ke keyframe XML Alight Motion menyusul setelah format adapter teruji impor (backlog AN-1 dan TS-1).</p>
+          <p class="page-sub">Preset berikut dapat dipratinjau langsung di Studio, pada pratinjau raster maupun hasil vektor. Impor dan tampilan shape statis terbukti di lapangan (TS-1); penerapan preset ke keyframe XML menyusul setelah semantik keyframe diverifikasi melalui uji impor nyata (backlog AN-1).</p>
         </div>
         <div class="preset-grid">
           <article class="card preset-card">
@@ -367,9 +367,9 @@
                 <tr><td>Pembangkit Path SVG</td><td><span class="badge badge-ok">Tersedia</span></td><td>VE-1: kontur marching squares plus penyederhanaan RDP; multi-komponen dan lubang internal didukung (VE-2 terhubung ke kontrol tingkat penyederhanaan); tabel tepi bit-packed tanpa perubahan keluaran (P1).</td></tr>
                 <tr><td>Pratinjau Animasi Lokal</td><td><span class="badge badge-ok">Tersedia</span></td><td>Tiga preset dengan durasi dan intensitas, pada raster dan vektor.</td></tr>
                 <tr><td>Desain Antarmuka (v0.3.0)</td><td><span class="badge badge-ok">Tersedia</span></td><td>DS-1: identitas visual Imperfect by Design; fungsionalitas pipeline tidak berubah.</td></tr>
-                <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1/AM-2/AM-3: satu bentuk statis dari kontur vektor; struktur scene mengikuti pola ekspor asli (prolog, precompose, retime, mediaFillMode); outline pada tag path sesuai parser asli Alight Motion; keyframe menyusul (AN-1).</td></tr>
+                <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1/AM-2/AM-3/AM-4: satu layer shape statis per komponen siluet (pemisah layer, pivot per bagian); struktur scene mengikuti pola ekspor asli (prolog, precompose, retime, mediaFillMode); outline pada tag path sesuai parser asli Alight Motion; keyframe menyusul (AN-1).</td></tr>
                 <tr><td>Validasi XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>XV-1/XV-2: well-formedness, prolog, atribut wajib, pola atribut ekspor asli, ID unik, rentang waktu, format warna.</td></tr>
-                <tr><td>Ekspor XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>EX-1: unduh .xml lokal; impor nyata belum terbukti (TS-1).</td></tr>
+                <tr><td>Ekspor XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>EX-1: unduh .xml lokal; impor dan tampilan shape terbukti di lapangan (TS-1); verifikasi lanjutan keluaran multi-layer menyusul.</td></tr>
               </tbody>
             </table>
           </div>
@@ -391,7 +391,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.4.3 — pratinjau siluet dan vektor dioptimalkan (P1)</span>
+        <span class="footer-version">v0.4.4 — pemisah layer per komponen pada ekspor XML (AM-4)</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>

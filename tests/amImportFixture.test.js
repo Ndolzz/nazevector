@@ -18,9 +18,12 @@
 // nonkosong, jumlah subpath sama dengan kontur vektorisasi, rentang koordinat
 // terpusat, pengulangan titik awal sebelum Z, bbox identik dengan kontur
 // tergeser, dan lubang berada di dalam kontur luar — bukan sekadar "XML valid".
-// Kejujuran: validasi struktur otomatis BUKAN bukti keberhasilan impor nyata;
-// TS-1 tetap terbuka hingga keluaran v0.4.2 terbukti MENAMPILKAN shape pada
-// perangkat nyata (impor berhasil saja tidak cukup).
+// Kejujuran: validasi struktur otomatis BUKAN bukti keberhasilan impor nyata.
+// Bukti lapangan 2026-10-17 (TS-1): ekspor v0.4.2/v0.4.3 terbukti diimpor dan
+// MENAMPILKAN shape (dengan titik sunting) di Alight Motion 5.0.273 (Android,
+// tangkapan layar pengguna), namun seluruh komponen bergabung pada satu layer
+// "Shape 1" — kekurangan yang diperbaiki AM-4 (v0.4.4): satu shape/layer per
+// komponen. Keluaran multi-layer AM-4 sendiri belum diuji di perangkat nyata.
 
 import { buildAlightMotionXml } from '../js/modules/amAdapter.js';
 import { validateAlightMotionXml } from '../js/modules/xmlValidation.js';
@@ -142,6 +145,12 @@ function extractOutlineD(xml) {
   const match = xml.match(/<path d="([^"]*)"/);
   if (!match) throw new Error('Tag <path> dengan atribut d tidak ditemukan pada keluaran.');
   return match[1];
+}
+
+// Ambil seluruh nilai atribut d dari tiap tag <path>, berurutan sesuai shape
+// (AM-4: satu path per komponen — indeks ke-0 = layer komponen pertama).
+function extractAllOutlineD(xml) {
+  return [...xml.matchAll(/<path d="([^"]*)"/g)].map((m) => m[1]);
 }
 
 // Parse path d format serializer asli: "M x y" + "L x y"* + "L x0 y0" + "Z",
@@ -334,6 +343,15 @@ export function runAmImportFixtureTests() {
     assert(subs.length >= 1, 'setidaknya satu subpath');
     const halfW = vectorData.width / 2;
     const halfH = vectorData.height / 2;
+    // AM-4 (v0.4.4): pivot layer = pusat bbox kontur luar komponen pertama
+    // (bukan lagi pusat kanvas global). Kontur digeser ke pivot itu sehingga
+    // setiap layer dapat diputar/diskalakan pada pusatnya sendiri di AM.
+    const outerContour = vectorData.subpaths.find((s) => s.role === 'outer');
+    assert(outerContour, 'ada kontur luar untuk menentukan pivot');
+    const outerBboxRaw = bboxOf(outerContour.points);
+    const pivotX = (outerBboxRaw.minX + outerBboxRaw.maxX) / 2;
+    const pivotY = (outerBboxRaw.minY + outerBboxRaw.maxY) / 2;
+    assertIncludes(result.xml, '<location value="' + pivotX.toFixed(6) + ',' + pivotY.toFixed(6) + ',0.000000"/>', 'transform.location = pusat bbox kontur luar');
     subs.forEach((sub, index) => {
       const points = vectorData.subpaths[index].points;
       assert(sub.closed === true, 'setiap subpath ditutup Z');
@@ -346,19 +364,19 @@ export function runAmImportFixtureTests() {
       }
       for (let k = 0; k < points.length; k += 1) {
         assert(
-          sub.pairs[k][0] === points[k][0] - halfW && sub.pairs[k][1] === points[k][1] - halfH,
-          'pasangan koordinat sesuai kontur digeser ke pusat'
+          sub.pairs[k][0] === points[k][0] - pivotX && sub.pairs[k][1] === points[k][1] - pivotY,
+          'pasangan koordinat sesuai kontur digeser ke pivot bbox'
         );
       }
       const last = sub.pairs[points.length];
-      assert(last[0] === points[0][0] - halfW && last[1] === points[0][1] - halfH, 'pasangan terakhir mengulang titik awal');
+      assert(last[0] === points[0][0] - pivotX && last[1] === points[0][1] - pivotY, 'pasangan terakhir mengulang titik awal');
     });
     const contourBbox = bboxOf(vectorData.subpaths[0].points);
     const dBbox = bboxOf(subs[0].pairs);
     assert(
-      dBbox.minX === contourBbox.minX - halfW && dBbox.maxX === contourBbox.maxX - halfW &&
-        dBbox.minY === contourBbox.minY - halfH && dBbox.maxY === contourBbox.maxY - halfH,
-      'bbox path identik dengan bbox kontur yang digeser'
+      dBbox.minX === contourBbox.minX - pivotX && dBbox.maxX === contourBbox.maxX - pivotX &&
+        dBbox.minY === contourBbox.minY - pivotY && dBbox.maxY === contourBbox.maxY - pivotY,
+      'bbox path identik dengan bbox kontur yang digeser ke pivot'
     );
     assert(vectorData.subpaths[0].area >= 150, 'luas kontur masuk akal untuk lingkaran radius 8: ' + vectorData.subpaths[0].area);
   });
@@ -395,6 +413,78 @@ export function runAmImportFixtureTests() {
         holeBbox.minY > outerBbox.minY && holeBbox.maxY < outerBbox.maxY,
       'bbox lubang berada di dalam bbox kontur luar'
     );
+  });
+
+  test('Geometri wajib: dua disk terpisah menghasilkan dua layer shape dengan id unik (AM-4)', () => {
+    const canvas = makeFakeCanvas(40, 20, (x, y) => {
+      const da = (x - 10) * (x - 10) + (y - 10) * (y - 10);
+      const db = (x - 30) * (x - 30) + (y - 10) * (y - 10);
+      return da <= 16 || db <= 16 ? [20, 20, 30, 255] : [240, 240, 240, 255];
+    });
+    const vector = { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' };
+    const mask = computeSilhouetteMask(canvas, vector.mode, vector.threshold);
+    const vectorData = vectorizeSilhouette(mask, vector);
+    assert(vectorData.empty === false, 'siluet terdeteksi');
+    assert(vectorData.pathCount === 2, 'dua kontur luar (satu per disk), ditemukan ' + vectorData.pathCount);
+    assert(vectorData.componentCount === 2, 'dua komponen terpisah');
+    const result = requestXmlExport({ image: { name: 'uji.png', canvas }, vector, exportName: 'geometri-dua-disk' });
+    assert(result.ok === true, 'ekspor berhasil: ' + (result.message || ''));
+    assert((result.xml.match(/<shape /g) || []).length === 2, 'pemisah layer: tepat dua shape');
+    assert((result.xml.match(/<path /g) || []).length === 2, 'satu tag path per shape');
+    const ids = [...result.xml.matchAll(/\slabel="Shape (\d+)"/g)].map((m) => m[1]);
+    assert(ids.join(',') === '1,2', 'label layer Shape 1 dan Shape 2: ' + ids.join(','));
+    assert(new Set(ids).size === ids.length, 'id layer unik');
+    const outlines = extractAllOutlineD(result.xml);
+    assert(outlines.length === 2, 'dua outline d terpisah');
+    const subs = outlines.map((d) => parseOutline(d));
+    const totalPairs = subs.reduce((sum, sub) => sum + sub[0].pairs.length, 0);
+    const expectedPairs = vectorData.subpaths.reduce((sum, s) => sum + s.points.length + 1, 0);
+    assert(totalPairs === expectedPairs, 'total pasangan == total titik semua kontur + pengulangan titik awal per kontur');
+    for (const [dIndex, d] of outlines.entries()) {
+      assert(d.trim().length > 0, 'outline layer ' + (dIndex + 1) + ' tidak kosong');
+      assert(!d.includes('ZM'), 'layer disk tunggal tanpa lubang (tanpa token ZM)');
+    }
+    assert(validateAlightMotionXml(result.xml).valid === true, 'XML dua disk lulus validator');
+  });
+
+  test('Geometri wajib: cincin dengan pulau menghasilkan dua layer; lubang tetap di layer cincin (AM-4)', () => {
+    const canvas = makeFakeCanvas(21, 21, (x, y) => {
+      const dx = x - 10;
+      const dy = y - 10;
+      const r2 = dx * dx + dy * dy;
+      return (r2 >= 36 && r2 <= 100) || r2 <= 4 ? [20, 20, 30, 255] : [240, 240, 240, 255];
+    });
+    const vector = { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' };
+    const mask = computeSilhouetteMask(canvas, vector.mode, vector.threshold);
+    const vectorData = vectorizeSilhouette(mask, vector);
+    assert(vectorData.empty === false, 'siluet terdeteksi');
+    assert(vectorData.pathCount === 3, 'tiga kontur: luar, lubang, pulau; ditemukan ' + vectorData.pathCount);
+    assert(vectorData.componentCount === 2, 'dua komponen: cincin dan pulau');
+    const result = requestXmlExport({ image: { name: 'uji.png', canvas }, vector, exportName: 'geometri-cincin-pulau' });
+    assert(result.ok === true, 'ekspor berhasil: ' + (result.message || ''));
+    assert((result.xml.match(/<shape /g) || []).length === 2, 'pemisah layer: cincin dan pulau menjadi dua shape');
+    const outlines = extractAllOutlineD(result.xml);
+    assert(outlines.length === 2, 'satu tag path per shape');
+    const ringSubs = parseOutline(outlines[0]);
+    assert(ringSubs.length === 2, 'layer cincin memuat dua subpath (kontur luar + lubang)');
+    assert(outlines[0].includes('ZM'), 'kontur luar dan lubang bergabung pada layer cincin (token ZM)');
+    const islandSubs = parseOutline(outlines[1]);
+    assert(islandSubs.length === 1, 'layer pulau memuat satu subpath');
+    assert(!outlines[1].includes('ZM'), 'layer pulau tanpa lubang');
+    const ringOuterBbox = bboxOf(ringSubs[0].pairs);
+    const ringHoleBbox = bboxOf(ringSubs[1].pairs);
+    const islandBbox = bboxOf(islandSubs[0].pairs);
+    assert(
+      ringHoleBbox.minX > ringOuterBbox.minX && ringHoleBbox.maxX < ringOuterBbox.maxX &&
+        ringHoleBbox.minY > ringOuterBbox.minY && ringHoleBbox.maxY < ringOuterBbox.maxY,
+      'bbox lubang berada di dalam bbox kontur luar (layer cincin)'
+    );
+    assert(
+      islandBbox.minX > ringHoleBbox.minX && islandBbox.maxX < ringHoleBbox.maxX &&
+        islandBbox.minY > ringHoleBbox.minY && islandBbox.maxY < ringHoleBbox.maxY,
+      'bbox pulau berada di dalam bbox lubang (pulau layer tersendiri)'
+    );
+    assert(validateAlightMotionXml(result.xml).valid === true, 'XML cincin+pulau lulus validator');
   });
 
   return {

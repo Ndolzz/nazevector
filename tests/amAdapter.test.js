@@ -114,6 +114,112 @@ export function runAmAdapterTests() {
     });
   }
 
+  // AM-4: dua komponen terpisah pada satu kanvas. Komponen A (dengan lubang)
+  // berada di [0..30]x[0..20], komponen B di [60..90]x[40..60]; pivot bbox A
+  // = (15,10), pivot bbox B = (75,50).
+  function makeTwoComponentVectorData() {
+    return makeVectorData({
+      pathCount: 3,
+      componentCount: 2,
+      vertexCount: 12,
+      subpaths: [
+        {
+          role: 'outer',
+          points: [
+            [0, 0],
+            [30, 0],
+            [30, 20],
+            [0, 20],
+          ],
+          d: 'M0 0 L30 0 L30 20 L0 20 Z',
+          vertexCount: 4,
+          area: 600,
+        },
+        {
+          role: 'hole',
+          points: [
+            [10, 10],
+            [20, 10],
+            [20, 15],
+            [10, 15],
+          ],
+          d: 'M10 10 L20 10 L20 15 L10 15 Z',
+          vertexCount: 4,
+          area: 50,
+        },
+        {
+          role: 'outer',
+          points: [
+            [60, 40],
+            [90, 40],
+            [90, 60],
+            [60, 60],
+          ],
+          d: 'M60 40 L90 40 L90 60 L60 60 Z',
+          vertexCount: 4,
+          area: 600,
+        },
+      ],
+    });
+  }
+
+  // AM-4: cincin dengan pulau di dalam lubangnya. Kontur luar [0..40]² dan
+  // pulau [17..23]² sama-sama role 'outer'; lubang [10..30]² role 'hole'.
+  // Kedua pivot bbox = (20,20).
+  function makeIslandVectorData() {
+    return makeVectorData({
+      width: 40,
+      height: 40,
+      pathCount: 3,
+      componentCount: 2,
+      vertexCount: 12,
+      subpaths: [
+        {
+          role: 'outer',
+          points: [
+            [0, 0],
+            [40, 0],
+            [40, 40],
+            [0, 40],
+          ],
+          d: 'M0 0 L40 0 L40 40 L0 40 Z',
+          vertexCount: 4,
+          area: 1600,
+        },
+        {
+          role: 'hole',
+          points: [
+            [10, 10],
+            [30, 10],
+            [30, 30],
+            [10, 30],
+          ],
+          d: 'M10 10 L30 10 L30 30 L10 30 Z',
+          vertexCount: 4,
+          area: 400,
+        },
+        {
+          role: 'outer',
+          points: [
+            [17, 17],
+            [23, 17],
+            [23, 23],
+            [17, 23],
+          ],
+          d: 'M17 17 L23 17 L23 23 L17 23 Z',
+          vertexCount: 4,
+          area: 36,
+        },
+      ],
+    });
+  }
+
+  // Ambil segmen XML per elemen shape (untuk membuktikan lubang berada pada
+  // layer komponen yang benar, bukan pada layer lain).
+  function splitByShape(xml) {
+    return xml.split('<shape ').slice(1).map((segment) => '<shape ' + segment.split('</shape>')[0]);
+  }
+
   const OPTIONS = { title: 'Uji', totalTime: 2500, fps: '30', modifiedTime: 1700000000000, color: '#3B82F6' };
 
   /* ---------- AM-1: pembangkit XML ---------- */
@@ -392,6 +498,54 @@ export function runAmAdapterTests() {
     });
     assert(result.ok === true, 'ekspor berhasil');
     assertIncludes(result.xml, '<fillColor value="#FF8C6CFF"/>', 'warna state diteruskan');
+  });
+
+  /* ---------- AM-4 (v0.4.4): pemisah layer per komponen ---------- */
+
+  test('AM-4: siluet satu komponen tetap menghasilkan tepat satu shape (regresi)', () => {
+    const xml = buildAlightMotionXml(makeVectorData(), OPTIONS);
+    assert((xml.match(/<shape /g) || []).length === 1, 'tepat satu shape untuk satu komponen');
+    assert((xml.match(/<path /g) || []).length === 1, 'satu tag path per shape');
+    assertIncludes(xml, '<shape id="1" label="Shape 1"', 'id dan label layer pertama tetap 1');
+    assertIncludes(xml, '<location value="50.000000,40.000000,0.000000"/>', 'pivot = pusat bbox kontur luar');
+    assertIncludes(xml, 'M -50 -40L 50 -40L 50 40L -50 40L -50 -40Z', 'outline digeser ke pivot bbox');
+    assert(validateAlightMotionXml(xml).valid === true, 'XML satu komponen lulus validator');
+  });
+
+  test('AM-4: dua komponen dipisah menjadi dua shape (layer) dengan pivot masing-masing', () => {
+    const xml = buildAlightMotionXml(makeTwoComponentVectorData(), OPTIONS);
+    assert((xml.match(/<shape /g) || []).length === 2, 'dua komponen menghasilkan dua shape');
+    assert((xml.match(/<path /g) || []).length === 2, 'satu tag path per shape (dua total)');
+    const ids = [...xml.matchAll(/\slabel="Shape (\d+)"/g)].map((m) => m[1]);
+    assert(ids.join(',') === '1,2', 'label layer Shape 1 lalu Shape 2 sesuai urutan pindai: ' + ids.join(','));
+    assert(new Set(ids).size === ids.length, 'id/label unik per layer');
+    assertIncludes(xml, '<location value="15.000000,10.000000,0.000000"/>', 'pivot layer A = pusat bbox A (15,10)');
+    assertIncludes(xml, '<location value="75.000000,50.000000,0.000000"/>', 'pivot layer B = pusat bbox B (75,50)');
+    const shapes = splitByShape(xml);
+    assert(shapes.length === 2, 'dua segmen shape terpisah');
+    assertIncludes(shapes[0], 'M -15 -10L 15 -10L 15 10L -15 10L -15 -10Z', 'outline luar A digeser ke pivot A');
+    assertIncludes(shapes[0], 'ZM -5 0L 5 0L 5 5L -5 5L -5 0Z', 'lubang A bergabung pada layer A (token ZM)');
+    assert(!shapes[1].includes('ZM'), 'layer B tidak memuat token ZM (tanpa lubang)');
+    assertIncludes(shapes[1], 'M -15 -10L 15 -10L 15 10L -15 10L -15 -10Z', 'outline B digeser ke pivot B');
+    assert(validateAlightMotionXml(xml).valid === true, 'XML dua komponen lulus validator');
+  });
+
+  test('AM-4: pulau di dalam lubang menjadi layer tersendiri, lubang tetap di layer cincin', () => {
+    const xml = buildAlightMotionXml(makeIslandVectorData(), OPTIONS);
+    assert((xml.match(/<shape /g) || []).length === 2, 'cincin dan pulau menghasilkan dua shape');
+    const shapes = splitByShape(xml);
+    assert(shapes.length === 2, 'dua segmen shape terpisah');
+    assertIncludes(shapes[0], '<location value="20.000000,20.000000,0.000000"/>', 'pivot cincin = pusat bbox luar');
+    assertIncludes(
+      shapes[0],
+      'M -20 -20L 20 -20L 20 20L -20 20L -20 -20ZM -10 -10L 10 -10L 10 10L -10 10L -10 -10Z',
+      'cincin: kontur luar dan lubang bergabung pada satu layer (token ZM)'
+    );
+    assert(!shapes[0].includes('M -3 -3'), 'pulau tidak ikut layer cincin');
+    assertIncludes(shapes[1], 'M -3 -3L 3 -3L 3 3L -3 3L -3 -3Z', 'pulau menjadi outline layer tersendiri');
+    assertIncludes(shapes[1], '<location value="20.000000,20.000000,0.000000"/>', 'pivot pulau = pusat bbox pulau');
+    assert((xml.match(/ZM/g) || []).length === 1, 'token ZM hanya muncul pada layer cincin');
+    assert(validateAlightMotionXml(xml).valid === true, 'XML cincin+pulau lulus validator');
   });
 
   return {

@@ -53,8 +53,8 @@ export function initExportPanel(store) {
         exportMessage: {
           kind: 'success',
           text:
-            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal; outline kini memakai tag path sesuai pola parser asli Alight Motion. ' +
-            'Impor nyata belum terbukti (TS-1): mohon periksa bahwa siluet benar-benar terlihat di kanvas setelah diimpor; bila kanvas kosong atau impor gagal, mohon laporkan pesan kesalahannya.',
+            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal; sejak v0.4.4 setiap komponen siluet ditulis sebagai shape (layer) tersendiri — pemisah layer (AM-4) — sehingga tiap bagian dapat dipilih, digeser, diputar, dan diskalakan sendiri di timeline. ' +
+            'Impor dan tampilan shape terbukti pada perangkat nyata (TS-1, tangkapan layar pengguna pada Alight Motion 5.0.273 Android). Mohon periksa bahwa tiap bagian siluet kini berada pada layer tersendiri (Shape 1, Shape 2, dst.); bila ada bagian yang bergabung atau tampil salah, mohon laporkan.',
         },
       });
     } else {
