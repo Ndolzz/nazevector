@@ -367,7 +367,7 @@ export function runVectorEngineTests() {
     assert(result.xml.includes('<scene '), 'akar scene ada');
     assert(result.xml.includes('<shape id="1"'), 'satu bentuk dengan id 1');
     assert(result.xml.includes('title="siluet-uji"'), 'nama ekspor dipakai sebagai judul scene');
-    assert(result.xml.includes('<contour d="'), 'kontur ada di parameter bentuk');
+    assert(result.xml.includes('<path d="'), 'outline ada pada tag path bentuk (AM-3)');
     assert(!result.xml.includes('<kf '), 'XML statis: tidak ada keyframe (AN-1 belum dikerjakan)');
     assert(result.validation && result.validation.valid === true, 'validasi lokal lulus');
   });

@@ -1,17 +1,20 @@
-// js/modules/xmlValidation.js — Validasi dokumen XML Alight Motion (XV-1 + XV-2, v0.4.1).
+// js/modules/xmlValidation.js — Validasi dokumen XML Alight Motion (XV-1 + XV-2 + XV-3, v0.4.2).
 // Validator murni tanpa DOMParser (agar berjalan di semua peramban dan di harness
 // uji tanpa Node): well-formedness, akar scene, atribut wajib, ID unik positif,
-// rentang waktu, warna #AARRGGBB, dan kontur tidak kosong. XV-2 (v0.4.1) menambah
-// pemeriksaan pola struktural ekspor asli: prolog XML, atribut scene
-// precompose/retime/retimeAdaptFPS, dan mediaFillMode pada setiap elemen
-// (docs/SDD.md bagian 11).
+// rentang waktu, warna #AARRGGBB, dan outline shape tidak kosong. XV-2 (v0.4.1)
+// menambahkan pemeriksaan pola struktural ekspor asli: prolog XML, atribut scene
+// precompose/retime/retimeAdaptFPS, dan mediaFillMode pada setiap elemen.
+// XV-3 (v0.4.2) mensyaratkan outline shape imported pada tag <path> dengan atribut
+// d non-kosong: parser asli Alight Motion 5.0.273 hanya membaca outline dari tag
+// path (bukan parameter/contour), sehingga struktur lain menghasilkan shape kosong
+// meski berkas dapat diimpor (docs/SDD.md bagian 12).
 // Hasil: { valid: boolean, issues: string[] } dengan pesan berbahasa Indonesia.
 
 export const XML_VALIDATION_STATUS = {
   id: 'XV',
   label: 'Validasi XML',
   reason:
-    'Validasi lokal: well-formedness, prolog, atribut wajib scene, pola atribut ekspor asli (precompose, retime, retimeAdaptFPS, mediaFillMode), ID unik, rentang waktu, format warna, dan kontur. Bukan bukti kompatibilitas impor (TS-1).',
+    'Validasi lokal: well-formedness, prolog, atribut wajib scene, pola atribut ekspor asli (precompose, retime, retimeAdaptFPS, mediaFillMode), outline shape imported pada tag path (pola parser asli), ID unik, rentang waktu, dan format warna. Bukan bukti kompatibilitas impor (TS-1).',
 };
 
 const SCENE_REQUIRED_ATTRS = [
@@ -244,7 +247,7 @@ function checkElements(root, issues) {
     checkTiming(element, totalTime, issues);
     checkFillColor(element, issues);
   }
-  checkContours(elements, issues);
+  checkOutlines(elements, issues);
 }
 
 function collectElements(root) {
@@ -287,41 +290,44 @@ function checkFillColor(element, issues) {
   }
 }
 
-function checkContours(elements, issues) {
+function checkOutlines(elements, issues) {
   let shapeCount = 0;
-  let importedShapeCount = 0;
-  let contourCount = 0;
   for (const element of elements) {
     if (element.name !== 'shape') continue;
     shapeCount += 1;
-    if (element.attrs.s === undefined) {
-      importedShapeCount += 1;
-      if (!hasContourWithD(element)) {
-        issues.push('Bentuk imported (id="' + element.attrs.id + '") tanpa kontur d yang tidak kosong.');
-      }
+    // Shape template (atribut s) dirender dari template bawaan, bukan outline
+    // imported: ekspor asli Proyek Baru 1.xml hanya berisi shape s=".rect" dan
+    // tetap tampil normal, sehingga hanya shape tanpa s yang wajib ber-outline.
+    if (element.attrs.s === undefined && !hasOutlinePathWithD(element)) {
+      issues.push(
+        'Bentuk imported (id="' + element.attrs.id +
+        '") tanpa tag <path> outline dengan atribut d yang tidak kosong; parser asli Alight Motion hanya membaca outline dari tag <path> (struktur parameter/contour menghasilkan shape kosong).'
+      );
     }
-    contourCount += countContours(element);
   }
   if (shapeCount === 0) {
     issues.push('Scene tidak memiliki elemen <shape> apa pun.');
-  } else if (importedShapeCount > 0 && contourCount === 0) {
-    issues.push('Tidak ada elemen <contour> pada bentuk imported.');
   }
 }
 
-function hasContourWithD(element) {
-  return findContours(element).some((c) => typeof c.attrs.d === 'string' && c.attrs.d.trim().length > 0);
+// Parser asli membaca tag <path> pada level anak <shape>: bentuk statis memuat
+// atribut d non-kosong; bentuk keyed memuat anak contour/knot. Keduanya diterima;
+// tag parameter/contour statis tidak diterima sebagai outline (XV-3).
+function hasOutlinePathWithD(element) {
+  for (const child of element.children) {
+    if (child.name !== 'path') continue;
+    const d = child.attrs.d;
+    if (typeof d === 'string' && d.trim().length > 0) return true;
+    if (findNamedDeep(child, 'contour').length > 0 || findNamedDeep(child, 'knot').length > 0) return true;
+  }
+  return false;
 }
 
-function countContours(element) {
-  return findContours(element).length;
-}
-
-function findContours(node) {
+function findNamedDeep(node, name) {
   const found = [];
   for (const child of node.children) {
-    if (child.name === 'contour') found.push(child);
-    found.push(...findContours(child));
+    if (child.name === name) found.push(child);
+    found.push(...findNamedDeep(child, name));
   }
   return found;
 }

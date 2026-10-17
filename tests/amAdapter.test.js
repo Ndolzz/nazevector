@@ -1,9 +1,10 @@
-// tests/amAdapter.test.js — Uji adapter XML Alight Motion (AM-1), validasi XML (XV-1),
-// dan integrasi ekspor (EX-1). Modul murni tanpa dependensi DOM: dapat dijalankan
-// lewat tests/index.html di peramban atau oleh host ES Module apa pun.
-// Bagan kanvas palsu (fake canvas) meniru antarmuka getImageData yang dibaca
-// silhouette.js; bagian unduhan berkas (Blob/anchor) memerlukan peramban dan
-// tidak diuji di sini (dilaporkan sebagai keterbatasan di docs/SDD.md).
+// tests/amAdapter.test.js — Uji adapter XML Alight Motion (AM-1 + AM-3), validasi
+// XML (XV-1 + XV-3), dan integrasi ekspor (EX-1). Modul murni tanpa dependensi
+// DOM: dapat dijalankan lewat tests/index.html di peramban atau oleh host ES
+// Module apa pun. Bagan kanvas palsu (fake canvas) meniru antarmuka getImageData
+// yang dibaca silhouette.js; bagian unduhan berkas (Blob/anchor) memerlukan
+// peramban dan tidak diuji di sini (dilaporkan sebagai keterbatasan di
+// docs/SDD.md bagian 12).
 
 import { buildAlightMotionXml } from '../js/modules/amAdapter.js';
 import { validateAlightMotionXml } from '../js/modules/xmlValidation.js';
@@ -45,7 +46,9 @@ export function runAmAdapterTests() {
     throw new Error(label + ' harus melempar Error.');
   }
 
-  // Data vektor minimal menyerupai keluaran vectorizeSilhouette.
+  // Data vektor minimal menyerupai keluaran vectorizeSilhouette: kontur berupa
+  // cincin titik TANPA duplikat titik penutup (traceLoop membuang titik terakhir
+  // yang sama dengan titik awal; pengulangan titik awal ditambahkan adapter).
   function makeVectorData(overrides = {}) {
     return {
       ok: true,
@@ -65,10 +68,9 @@ export function runAmAdapterTests() {
             [100, 0],
             [100, 80],
             [0, 80],
-            [0, 0],
           ],
-          d: 'M0 0 L100 0 L100 80 L0 80 L0 0 Z',
-          vertexCount: 5,
+          d: 'M0 0 L100 0 L100 80 L0 80 Z',
+          vertexCount: 4,
           area: 8000,
         },
       ],
@@ -91,10 +93,9 @@ export function runAmAdapterTests() {
             [50, 0],
             [50, 50],
             [0, 50],
-            [0, 0],
           ],
           d: 'M0 0 L50 0 L50 50 L0 50 Z',
-          vertexCount: 5,
+          vertexCount: 4,
           area: 2500,
         },
         {
@@ -104,10 +105,9 @@ export function runAmAdapterTests() {
             [40, 10],
             [40, 40],
             [10, 40],
-            [10, 10],
           ],
           d: 'M10 10 L40 10 L40 40 L10 40 Z',
-          vertexCount: 5,
+          vertexCount: 4,
           area: 900,
         },
       ],
@@ -147,26 +147,28 @@ export function runAmAdapterTests() {
     }
   });
 
-  test('AM-1: satu shape imported dengan transform, fillColor, dan kontur', () => {
+  test('AM-1/AM-3: satu shape imported dengan transform, fillColor, dan outline path', () => {
     const xml = buildAlightMotionXml(makeVectorData(), OPTIONS);
     assertIncludes(xml, '<shape id="1" label="Shape 1" startTime="0" endTime="2500" fillType="color" mediaFillMode="fill">', 'atribut shape (mediaFillMode, AM-2)');
     assert(!xml.includes(' s="'), 'bentuk imported tidak memakai template s');
     assertIncludes(xml, '<location value="50.000000,40.000000,0.000000"/>', 'location di pusat kanvas');
     assertIncludes(xml, '<fillColor value="#FF3B82F6"/>', 'warna #AARRGGBB');
-    assertIncludes(xml, '<parameter>', 'blok parameter');
-    assertIncludes(xml, '<contour d="', 'kontur');
+    assertIncludes(xml, '<path d="', 'outline pada tag path (AM-3, pola parser asli)');
+    assert(!xml.includes('<parameter>'), 'outline tidak lagi memakai tag parameter');
+    assert(!xml.includes('<contour'), 'outline tidak lagi memakai tag contour');
   });
 
-  test('AM-1: kontur digeser agar terpusat pada location', () => {
+  test('AM-1/AM-3: outline digeser agar terpusat pada location dengan pola serializer asli', () => {
     const xml = buildAlightMotionXml(makeVectorData(), OPTIONS);
-    assertIncludes(xml, 'M-50,-40 L50,-40 L50,40 L-50,40 L-50,-40 Z', 'kontur digeser (-w/2, -h/2)');
+    assertIncludes(xml, 'M -50 -40L 50 -40L 50 40L -50 40L -50 -40Z', 'outline digeser (-w/2, -h/2), titik awal diulang sebelum Z');
   });
 
-  test('AM-1: multi-subpath (cincin) diserialisasi lengkap', () => {
+  test('AM-1/AM-3: multi-subpath (cincin) diserialisasi dalam satu tag path', () => {
     const xml = buildAlightMotionXml(makeRingVectorData(), OPTIONS);
-    assertIncludes(xml, 'M-25,-25 L25,-25 L25,25 L-25,25 L-25,-25 Z', 'kontur luar');
-    assertIncludes(xml, 'M-15,-15 L15,-15 L15,15 L-15,15 L-15,-15 Z', 'kontur lubang');
-    assert((xml.match(/<contour /g) || []).length === 1, 'kedua subpath berada dalam satu kontur gabungan');
+    assertIncludes(xml, 'M -25 -25L 25 -25L 25 25L -25 25L -25 -25Z', 'outline luar');
+    assertIncludes(xml, 'M -15 -15L 15 -15L 15 15L -15 15L -15 -15Z', 'outline lubang');
+    assertIncludes(xml, 'ZM -15 -15', 'token ZM antar kontur (joinToString separator kosong)');
+    assert((xml.match(/<path /g) || []).length === 1, 'kedua subpath berada dalam satu tag path gabungan');
   });
 
   test('AM-1: warna divalidasi dan dinormalisasi huruf besar', () => {
@@ -275,8 +277,8 @@ export function runAmAdapterTests() {
   test('XV-1: id duplikat ditolak', () => {
     const result = validateAlightMotionXml(
       '<scene title="t" width="10" height="10" exportWidth="10" exportHeight="10" bgcolor="#FF000000" totalTime="100" fps="30" modifiedTime="1" amver="1" ffver="106">' +
-        '<shape id="1" startTime="0" endTime="100" fillType="color"><parameter><contour d="M0,0 L1,0 Z"/></parameter></shape>' +
-        '<shape id="1" startTime="0" endTime="100" fillType="color"><parameter><contour d="M0,0 L1,0 Z"/></parameter></shape>' +
+        '<shape id="1" startTime="0" endTime="100" fillType="color"><path d="M 0 0L 1 0Z"/></shape>' +
+        '<shape id="1" startTime="0" endTime="100" fillType="color"><path d="M 0 0L 1 0Z"/></shape>' +
         '</scene>'
     );
     assert(result.valid === false, 'tidak valid');
@@ -286,17 +288,17 @@ export function runAmAdapterTests() {
   test('XV-1: endTime melebihi totalTime ditolak', () => {
     const result = validateAlightMotionXml(
       '<scene title="t" width="10" height="10" exportWidth="10" exportHeight="10" bgcolor="#FF000000" totalTime="100" fps="30" modifiedTime="1" amver="1" ffver="106">' +
-        '<shape id="1" startTime="0" endTime="200" fillType="color"><parameter><contour d="M0,0 L1,0 Z"/></parameter></shape>' +
+        '<shape id="1" startTime="0" endTime="200" fillType="color"><path d="M 0 0L 1 0Z"/></shape>' +
         '</scene>'
     );
     assert(result.valid === false, 'tidak valid');
     assertIncludes(result.issues.join(' '), 'totalTime', 'pesan endTime melebihi totalTime');
   });
 
-  test('XV-1: fillColor dan bgcolor harus #AARRGGBB; kontur tidak boleh kosong', () => {
+  test('XV-1/XV-3: fillColor dan bgcolor harus #AARRGGBB; outline path tidak boleh kosong', () => {
     const badColor = validateAlightMotionXml(
       '<scene title="t" width="10" height="10" exportWidth="10" exportHeight="10" bgcolor="#FFF" totalTime="100" fps="30" modifiedTime="1" amver="1" ffver="106">' +
-        '<shape id="1" startTime="0" endTime="100" fillType="color"><fillColor value="#3B82F6"/><parameter><contour d="M0,0 L1,0 Z"/></parameter></shape>' +
+        '<shape id="1" startTime="0" endTime="100" fillType="color"><fillColor value="#3B82F6"/><path d="M 0 0L 1 0Z"/></shape>' +
         '</scene>'
     );
     assert(badColor.valid === false, 'tidak valid');
@@ -304,13 +306,13 @@ export function runAmAdapterTests() {
     assertIncludes(all, 'bgcolor', 'bgcolor harus 8 heksadesimal');
     assertIncludes(all, 'fillColor', 'fillColor harus 8 heksadesimal');
 
-    const emptyContour = validateAlightMotionXml(
+    const emptyPath = validateAlightMotionXml(
       '<scene title="t" width="10" height="10" exportWidth="10" exportHeight="10" bgcolor="#FF000000" totalTime="100" fps="30" modifiedTime="1" amver="1" ffver="106">' +
-        '<shape id="1" startTime="0" endTime="100" fillType="color"><parameter><contour d=""/></parameter></shape>' +
+        '<shape id="1" startTime="0" endTime="100" fillType="color"><path d=""/></shape>' +
         '</scene>'
     );
-    assert(emptyContour.valid === false, 'kontur kosong tidak valid');
-    assertIncludes(emptyContour.issues.join(' '), 'kontur', 'pesan kontur kosong');
+    assert(emptyPath.valid === false, 'outline path kosong tidak valid');
+    assertIncludes(emptyPath.issues.join(' '), 'path', 'pesan outline path kosong (XV-3)');
   });
 
   test('XV-1: input bukan string ditolak', () => {

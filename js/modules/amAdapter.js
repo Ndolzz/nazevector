@@ -1,24 +1,32 @@
-// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2, v0.4.1).
+// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3, v0.4.2).
 // Membangun dokumen scene XML Alight Motion dari VectorPathData (keluaran VE-1):
-// satu elemen <shape> non-live (imported) dengan kontur di <parameter><contour>.
-// Basis rujukan: dokumentasi komunitas alight-motion-docs (docs/SDD.md 2.3) dan
-// tiga ekspor asli Alight Motion (AM-2, v0.4.1): dokumen diawali prolog <?xml?>,
-// scene memuat precompose/retime/retimeAdaptFPS, setiap elemen memuat mediaFillMode
-// (lihat docs/SDD.md bagian 11).
+// satu elemen <shape> non-live (imported) dengan outline pada <path d="..."/>.
+// Bukti AM-3 (v0.4.2): parser asli Alight Motion 5.0.273 (dekompilasi,
+// ShapeElementTypeImpl.unserializeElement) hanya membaca outline shape imported
+// dari tag <path> dengan atribut d (konstanta "path"), dan serializer asli
+// menulis outline non-keyed sebagai <path d="..."/> langsung di bawah <shape>
+// setelah common child tags. Ekspor asli (preset/Proyek Baru 19.xml, AM
+// 5.0.273.1028425) memuat <path d="M -360.0 -640.0L 360.0 -640.0...Z"/>. Struktur
+// <parameter><contour d/></parameter> (v0.4.1) TIDAK dibaca parser: berkas dapat
+// diimpor namun shape tanpa outline sehingga kanvas tampak kosong.
+// Pola AM-2 (v0.4.1) dipertahankan: prolog <?xml?>, scene memuat
+// precompose/retime/retimeAdaptFPS, setiap elemen memuat mediaFillMode
+// (lihat docs/SDD.md bagian 11 dan 12).
 // Batas jujur: keluaran berupa bentuk statis TANPA keyframe (AN-1 belum dikerjakan)
-// dan impor nyata belum terbukti: ekspor v0.4.0 ditolak Alight Motion, struktur
-// v0.4.1 diselaraskan dengan pola ekspor asli namun wajib diuji ulang (TS-1).
-// Asumsi belum terverifikasi (menunggu TS-1): kontur bentuk imported diposisikan
-// terpusat relatif terhadap transform.location — bukti tidak langsung dari
-// dokumentasi komunitas: template .rect berukuran 100x100 digambar terpusat pada
-// titik location (scale 1), sehingga kontur digeser (-width/2, -height/2) dan
-// location diisi pusat kanvas.
+// dan impor nyata belum terbukti: ekspor v0.4.1 berhasil diimpor namun shape tidak
+// terlihat; struktur v0.4.2 diselaraskan dengan parser asli namun wajib diuji ulang
+// di perangkat nyata (TS-1).
+// Asumsi belum terverifikasi penuh (menunggu TS-1): kontur bentuk imported
+// diposisikan terpusat relatif terhadap transform.location — bukti tidak langsung:
+// ekspor asli Proyek Baru 19.xml memuat path rect media 720x1280 dari (-360,-640)
+// sampai (360,640) terpusat (0,0) dengan location menentukan posisi di kanvas,
+// sehingga kontur digeser (-width/2, -height/2) dan location diisi pusat kanvas.
 
 export const AM_ADAPTER_STATUS = {
   id: 'AM',
   label: 'Adapter XML Alight Motion',
   reason:
-    'Menghasilkan XML scene berisi satu bentuk statis (tanpa keyframe). Struktur diselaraskan dengan ekspor asli (AM-2); impor nyata belum terbukti (TS-1).',
+    'Menghasilkan XML scene berisi satu bentuk statis (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); impor nyata belum terbukti (TS-1).',
 };
 
 const SCENE_DEFAULTS = {
@@ -53,9 +61,12 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
 
   const centerX = width / 2;
   const centerY = height / 2;
-  const contour = subpaths
-    .map((subpath) => contourD(subpath.points, centerX, centerY))
-    .join(' ');
+  // Digabung tanpa separator antar kontur: serializer asli (CubicBSplineKt.toSVGPath
+  // pada CompoundCubicBSpline) memakai joinToString dengan separator kosong sehingga
+  // pola "Z" + "M..." menjadi token "ZM" yang didukung parser asli (AM-3).
+  const outline = subpaths
+    .map((subpath) => pathD(subpath.points, centerX, centerY))
+    .join('');
 
   return (
     XML_PROLOG +
@@ -97,11 +108,9 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
     '<fillColor value="' +
     fillColor +
     '"/>' +
-    '<parameter>' +
-    '<contour d="' +
-    contour +
+    '<path d="' +
+    outline +
     '"/>' +
-    '</parameter>' +
     '</shape>' +
     '</scene>'
   );
@@ -178,14 +187,18 @@ function resolveFillColor(colorHex) {
 
 /* ---------- Serialisasi ---------- */
 
-function contourD(points, offsetX, offsetY) {
-  let d = '';
-  for (let i = 0; i < points.length; i += 1) {
-    const x = points[i][0] - offsetX;
-    const y = points[i][1] - offsetY;
-    d += (i === 0 ? 'M' : ' L') + x + ',' + y;
+// pathD meniru format serializer asli (CubicBSplineKt.toSVGPath): "M x y" lalu
+// "L x y" per titik, dengan titik awal diulang sebagai L terakhir sebelum
+// penutup "Z" — persis pola ekspor asli "M -360.0 -640.0L ... L -360.0 -640.0Z".
+// Parser asli mendukung perintah M, L, C, Z/z, dan token "ZM" antar kontur.
+function pathD(points, offsetX, offsetY) {
+  const x0 = points[0][0] - offsetX;
+  const y0 = points[0][1] - offsetY;
+  let d = 'M ' + x0 + ' ' + y0;
+  for (let i = 1; i < points.length; i += 1) {
+    d += 'L ' + (points[i][0] - offsetX) + ' ' + (points[i][1] - offsetY);
   }
-  return d + ' Z';
+  return d + 'L ' + x0 + ' ' + y0 + 'Z';
 }
 
 function formatNumber(value) {

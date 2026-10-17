@@ -53,8 +53,8 @@ export function initExportPanel(store) {
         exportMessage: {
           kind: 'success',
           text:
-            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal (pola ekspor asli). ' +
-            'Impor nyata ke Alight Motion belum terbukti (TS-1); bila gagal diimpor, mohon laporkan pesan kesalahannya.',
+            'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal; outline kini memakai tag path sesuai pola parser asli Alight Motion. ' +
+            'Impor nyata belum terbukti (TS-1): mohon periksa bahwa siluet benar-benar terlihat di kanvas setelah diimpor; bila kanvas kosong atau impor gagal, mohon laporkan pesan kesalahannya.',
         },
       });
     } else {
