@@ -940,3 +940,22 @@ input[type="color"] {
   .hero-sub { font-size: 1.05rem; }
   .home-menu { max-width: 100%; }
 }
+
+
+/* ---------- Perbaikan responsif lintas halaman (UI-3) ---------- */
+
+/* P0: navbar melipat, tidak melimpah pada layar 360-412 px */
+.main-nav { flex-wrap: wrap; justify-content: flex-start; }
+@media (max-width: 400px) {
+  .nav-link { padding: 6px 10px; }
+}
+
+/* P0: chip status panjang dilipat dalam wadahnya */
+.chip { max-width: 100%; }
+.status-strip { max-width: 100%; }
+
+/* P0: lebar dokumen tidak melampaui viewport; clip menjaga header lengket tetap berfungsi */
+html, body { overflow-x: clip; }
+
+/* P1: kolom samping studio lentur pada 721-960 px */
+.workspace { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); }
