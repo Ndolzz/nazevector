@@ -841,3 +841,67 @@ input[type="color"] {
   .demo-shape, .spinner { animation: none !important; }
   * { transition: none !important; }
 }
+
+
+/* ---------- Beranda: menu utama (redesain halaman awal) ---------- */
+
+.home-menu { margin-bottom: 8px; scroll-margin-top: 84px; }
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.menu-card {
+  padding: 16px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 8px solid var(--ink);
+  transition: box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.menu-card:hover {
+  box-shadow: 6px 6px 0 rgba(20, 18, 13, 0.9);
+  transform: translate(-2px, -2px);
+}
+
+.menu-card-yellow { border-top-color: var(--yellow); }
+.menu-card-purple { border-top-color: var(--purple); }
+.menu-card-orange { border-top-color: var(--orange); }
+.menu-card-green { border-top-color: var(--green); }
+
+.menu-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+}
+
+.menu-icon-yellow { background: var(--yellow-soft); }
+.menu-icon-purple { background: var(--purple-soft); }
+.menu-icon-orange { background: var(--orange-soft); }
+.menu-icon-green { background: var(--green-soft); }
+
+.menu-card-title { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
+.menu-card-desc { margin: 0; color: var(--text-2); font-size: 0.9rem; }
+.menu-card-foot { margin-top: auto; display: flex; justify-content: flex-end; }
+
+@media (max-width: 720px) {
+  .menu-grid { grid-template-columns: 1fr; }
+  .menu-card-foot .btn { width: 100%; }
+}

@@ -13,7 +13,7 @@
 
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="#" data-nav="studio" aria-label="Naze Vector — ke Studio">
+        <a class="brand" href="#" data-nav="beranda" aria-label="Naze Vector — ke Beranda">
           <svg class="brand-mark" viewBox="0 0 34 34" width="30" height="30" aria-hidden="true">
             <rect x="2" y="2" width="30" height="30" rx="9" fill="#FFC531" stroke="#14120D" stroke-width="2.4" />
             <path d="M9.5 24.5 L17 10 L24.5 24.5 Z" fill="#FFFFFF" stroke="#14120D" stroke-width="2.2" stroke-linejoin="round" />
@@ -23,6 +23,7 @@
           <span class="brand-name">Naze<span>Vector</span></span>
         </a>
         <nav class="main-nav" aria-label="Navigasi utama">
+          <button type="button" class="nav-link" data-nav="beranda">Beranda</button>
           <button type="button" class="nav-link" data-nav="studio">Studio</button>
           <button type="button" class="nav-link" data-nav="preset">Preset</button>
           <button type="button" class="nav-link" data-nav="tentang">Tentang</button>
@@ -33,7 +34,92 @@
 
     <main class="site-main" id="main">
 
-      <section class="page" id="page-studio" aria-label="Studio">
+            <section class="page" id="page-beranda" aria-label="Beranda">
+
+        <div class="hero">
+          <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.5.1</span></p>
+          <h1 class="hero-title">Selamat datang di ruang kerja <em>preset Alight Motion</em>.</h1>
+          <p class="hero-sub">Naze Vector membantu Anda membuat, mengelola, dan mengolah preset visual Alight Motion — mulai dari vektorisasi gambar, pratinjau animasi, hingga perakitan ulang berkas proyek. Seluruh pemrosesan berjalan lokal di peramban Anda, tanpa akun dan tanpa unggahan ke server.</p>
+          <div class="hero-cta">
+            <button type="button" class="btn btn-primary" data-nav="studio" data-nav-scroll="studio-workspace">Mulai Bekerja</button>
+            <button type="button" class="btn btn-secondary" data-nav="beranda" data-nav-scroll="home-menu">Jelajahi Fitur</button>
+          </div>
+          <ul class="hero-tags">
+            <li class="hero-tag"><i class="tag-dot tag-dot-green" aria-hidden="true"></i>Privat — diproses di peramban</li>
+            <li class="hero-tag"><i class="tag-dot tag-dot-purple" aria-hidden="true"></i>Tanpa akun</li>
+            <li class="hero-tag"><i class="tag-dot tag-dot-orange" aria-hidden="true"></i>Ekspor XML Alight Motion <span class="tag-note">statis</span></li>
+          </ul>
+          <div class="status-strip" id="home-status-strip" aria-label="Status fitur"></div>
+        </div>
+
+        <div class="home-menu" id="home-menu">
+          <div class="page-head">
+            <p class="page-kicker">MENU UTAMA</p>
+            <h2 class="page-title">Mulai dari sini</h2>
+            <p class="page-sub">Fitur di bawah mencerminkan status pengembangan sebenarnya — fitur yang belum tersedia ditandai secara eksplisit.</p>
+          </div>
+          <div class="menu-grid">
+
+            <article class="card menu-card menu-card-yellow">
+              <div class="menu-card-head">
+                <span class="menu-icon menu-icon-yellow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 20 L12 5 L20 20 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="15" r="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                </span>
+                <span class="badge badge-ok">Tersedia</span>
+              </div>
+              <h3 class="menu-card-title">Studio Vektorisasi</h3>
+              <p class="menu-card-desc">Ubah gambar menjadi siluet vektor, pisahkan layer per komponen atau kontur, lalu ekspor XML Alight Motion statis.</p>
+              <div class="menu-card-foot">
+                <button type="button" class="btn btn-primary btn-compact" data-nav="studio" data-nav-scroll="studio-workspace">Buka Studio</button>
+              </div>
+            </article>
+
+            <article class="card menu-card menu-card-purple">
+              <div class="menu-card-head">
+                <span class="menu-icon menu-icon-purple" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5 L8 18.5 L19 12 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="badge badge-pending">Pratinjau lokal</span>
+              </div>
+              <h3 class="menu-card-title">Preset Animasi</h3>
+              <p class="menu-card-desc">Tiga preset gerak dengan durasi dan intensitas yang dapat dipratinjau langsung; penerapan keyframe XML menyusul.</p>
+              <div class="menu-card-foot">
+                <button type="button" class="btn btn-secondary btn-compact" data-nav="preset">Lihat Preset</button>
+              </div>
+            </article>
+
+            <article class="card menu-card menu-card-orange">
+              <div class="menu-card-head">
+                <span class="menu-icon menu-icon-orange" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 12 L12 16.5 L21 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 16.5 L12 21 L21 16.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="badge badge-pending">Dalam pengembangan</span>
+              </div>
+              <h3 class="menu-card-title">Instant Preset Remixer</h3>
+              <p class="menu-card-desc">Saat ini fitur ini belum tersedia: sedang dikembangkan untuk merakit ulang preset dari berkas proyek Alight Motion.</p>
+              <div class="menu-card-foot">
+                <button type="button" class="btn btn-secondary btn-compact" data-nav="tentang">Lihat Status</button>
+              </div>
+            </article>
+
+            <article class="card menu-card menu-card-green">
+              <div class="menu-card-head">
+                <span class="menu-icon menu-icon-green" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11 L12 16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.15" fill="currentColor"/></svg>
+                </span>
+                <span class="badge badge-ok">Tersedia</span>
+              </div>
+              <h3 class="menu-card-title">Tentang &amp; Status</h3>
+              <p class="menu-card-desc">Status tiap modul, batas kompatibilitas, dan referensi format Alight Motion yang dipelajari.</p>
+              <div class="menu-card-foot">
+                <button type="button" class="btn btn-secondary btn-compact" data-nav="tentang">Buka Tentang</button>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </section>
+<section class="page page-hidden" id="page-studio" aria-label="Studio">
 
         <div class="hero">
           <p class="hero-eyebrow">Naze Vector <span class="hero-version">v0.5.1</span></p>

@@ -19,3 +19,4 @@ initVectorPanel(store);
 initAnimationPanel(store);
 initExportPanel(store);
 renderFeatureStatusStrip(qs('#feature-status-strip'));
+renderFeatureStatusStrip(qs('#home-status-strip'));

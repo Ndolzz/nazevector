@@ -24,7 +24,7 @@ export function createStore(initialState) {
 }
 
 export const initialState = {
-  page: 'studio',
+  page: 'beranda',
   image: null,
   importError: null,
   isProcessing: false,
