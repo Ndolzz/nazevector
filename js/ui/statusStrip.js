@@ -5,8 +5,8 @@ export const FEATURE_STATUS = [
   { label: 'Pratinjau Siluet Raster', available: true },
   { label: 'Mesin Vektorisasi (SVG)', available: true },
   { label: 'Pratinjau Animasi Lokal', available: true },
-  { label: 'Adapter XML Alight Motion', available: true, note: 'statis, satu layer per komponen atau per goresan, tanpa keyframe; mode garis menunggu uji lapangan' },
-  { label: 'Ekspor XML', available: true, note: 'mode isi terbukti tampil di perangkat nyata (TS-1); mode garis (VE-3) dan warna asli (CV-1) baru sejak v0.5.0 menunggu uji lapangan; keyframe menyusul (AN-1)' },
+  { label: 'Adapter XML Alight Motion', available: true, note: 'statis, satu layer per komponen, per goresan, atau per kontur, tanpa keyframe; mode garis dan mode kontur menunggu uji lapangan' },
+  { label: 'Ekspor XML', available: true, note: 'mode isi terbukti tampil di perangkat nyata (TS-1); mode garis (VE-3), mode kontur (AM-6), dan warna asli (CV-1/CV-2) menunggu uji lapangan; keyframe menyusul (AN-1)' },
 ];
 
 export function renderFeatureStatusStrip(container) {

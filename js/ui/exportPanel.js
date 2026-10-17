@@ -1,5 +1,6 @@
 // js/ui/exportPanel.js — Panel ekspor: nama berkas, format, mode representasi
-// (AM-5: isi/garis), mode warna (CV-1: pilihan/asli), status validasi, unduhan.
+// (AM-5/AM-6: isi/garis/kontur), mode warna (CV-1/CV-2: pilihan/asli), status
+// validasi, unduhan.
 // Ekspor XML (EX-1): hasil pipeline diunduh sebagai .xml via Blob lokal.
 // Status validasi lokal disimpan pada variabel closure (bukan state store) agar
 // kontrak state.js tidak berubah; nilai reset saat gambar atau pengaturan berganti
@@ -117,7 +118,9 @@ export function initExportPanel(store) {
 }
 
 function buildSuccessMessage(state) {
-  const isCenterline = state.exportRepresentation === 'garis';
+  const representation = state.exportRepresentation;
+  const isCenterline = representation === 'garis';
+  const isContour = representation === 'kontur';
   const isOriginalColor = state.exportColorMode === 'asli';
   let text =
     'Ekspor berhasil. Berkas XML diunduh dan lulus validasi struktur lokal. ';
@@ -128,6 +131,13 @@ function buildSuccessMessage(state) {
         ? 'mengikuti warna asli gambar (CV-1). '
         : 'mengikuti warna pilihan. ') +
       'Batas jujur: struktur path-stroke tanpa penutup Z pada mode garis belum diuji pada perangkat nyata — mohon periksa hasil impor di Alight Motion dan laporkan bila garis tampil salah. ';
+  } else if (isContour) {
+    text +=
+      'Mode kontur (AM-6): setiap kontur — termasuk setiap lubang yang sebelumnya bergabung pada layer komponennya — ditulis sebagai satu layer shape tersendiri (1 layer = 1 kontur), sehingga setiap entri pada panel "Tambahkan Kontur" Alight Motion kini berada pada layer tersendiri dan dapat dipilih, digeser, diputar, diskalakan, serta diberi warna sendiri. Warna layer ' +
+      (isOriginalColor
+        ? 'mengikuti warna asli gambar per kontur (CV-2): kontur luar memakai warna area siluetnya, kontur lubang memakai warna latar di dalam lubang. '
+        : 'mengikuti warna pilihan untuk seluruh layer — dengan demikian tampilan menyatu; gunakan mode warna asli bila tiap layer ingin diwarnai sesuai area aslinya. ') +
+      'Batas jujur: mode kontur belum diuji pada perangkat nyata — mohon periksa bahwa setiap kontur berada pada layer tersendiri (Shape 1, Shape 2, dst.) dan laporkan bila ada kontur yang bergabung, tumpang-tindih salah, atau tampil kosong. ';
   } else {
     text +=
       'Mode isi: setiap komponen siluet ditulis sebagai shape (layer) tersendiri — pemisah layer (AM-4) — sehingga tiap bagian dapat dipilih, digeser, diputar, dan diskalakan sendiri di timeline; ' +
@@ -139,7 +149,7 @@ function buildSuccessMessage(state) {
   }
   if (isOriginalColor) {
     text +=
-      'Batas jujur warna asli: warna diambil dari piksel dominan per komponen (tepat untuk desain warna datar, perkiraan untuk gradien/foto). ';
+      'Batas jujur warna asli: warna diambil dari piksel dominan per komponen atau per kontur (tepat untuk desain warna datar, perkiraan untuk gradien/foto). ';
   }
   text += 'Keyframe animasi menyusul (AN-1).';
   return text;

@@ -1,4 +1,4 @@
-// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3 + AM-4 + AM-5, v0.5.0).
+// js/modules/amAdapter.js — Serializer XML Alight Motion (AM-1 + AM-2 + AM-3 + AM-4 + AM-5 + AM-6, v0.5.1).
 // Membangun dokumen scene XML Alight Motion dari VectorPathData (keluaran VE-1):
 // satu elemen <shape> non-live (imported) per komponen siluet — pemisah layer
 // (AM-4) — masing-masing dengan outline pada <path d="..."/> (AM-3) berisi
@@ -36,12 +36,23 @@
 // hasil sampling CV-1) yang ditulis sebagai fillColor per layer. Batas jujur:
 // semantik warna path-stroke pada perangkat nyata belum terverifikasi —
 // fillColor tetap ditulis dan hasil mode garis menunggu uji lapangan.
+// AM-6 (v0.5.1): mode representasi ketiga "kontur" — permintaan pengguna
+// 2026-10-17 (tangkapan layar editor titik Alight Motion: satu layer shape
+// memuat "Kontur 1".."Kontur 9"): setiap subpath (kontur luar ATAU lubang)
+// ditulis sebagai shape (layer) tersendiri sehingga 1 layer = 1 kontur.
+// Outline tiap layer memakai pathD tertutup Z dengan pivot = pusat bbox
+// kontur tersebut. Warna: satu warna global atau warna per kontur
+// (options.contourColors, hasil sampling CV-2). Urutan layer mengikuti urutan
+// subpaths (kontur luar, lalu lubangnya, lalu pulau) sehingga lubang dan pulau
+// dirender SETELAH kontur luarnya — asumsi urutan tumpukan layer Alight
+// Motion yang belum diverifikasi pada perangkat nyata. Batas jujur: mode
+// kontur menunggu uji lapangan.
 
 export const AM_ADAPTER_STATUS = {
   id: 'AM',
   label: 'Adapter XML Alight Motion',
   reason:
-    'Menghasilkan XML scene berisi satu layer shape statis per komponen siluet (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); tampilan pada perangkat nyata terbukti untuk mode isi (TS-1, uji lapangan). Mode garis (path-stroke) dan warna asli per layer tersedia sejak v0.5.0 (AM-5) dan menunggu uji lapangan.',
+    'Menghasilkan XML scene berisi layer shape statis per komponen, per goresan, atau per kontur (tanpa keyframe). Outline memakai tag path sesuai parser asli Alight Motion (AM-3); tampilan pada perangkat nyata terbukti untuk mode isi (TS-1, uji lapangan). Mode garis (path-stroke), mode kontur (AM-6), dan warna asli per layer menunggu uji lapangan.',
 };
 
 const SCENE_DEFAULTS = {
@@ -76,6 +87,7 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
   const representation = resolveRepresentation(options.representation);
   const components = groupSubpathsByComponent(subpaths);
   const componentColors = resolveComponentColors(options.componentColors, components.length);
+  const contourColors = resolveContourColors(options.contourColors, subpaths.length);
 
   let shapes = '';
   if (representation === 'garis') {
@@ -83,6 +95,12 @@ export function buildAlightMotionXml(vectorPathData, options = {}) {
       totalTime,
       globalColor,
       componentColors,
+    });
+  } else if (representation === 'kontur') {
+    shapes = buildPerContourShapes(subpaths, {
+      totalTime,
+      globalColor,
+      contourColors,
     });
   } else {
     shapes = buildFilledShapes(components, {
@@ -211,6 +229,48 @@ function buildCenterlineShapes(centerlineData, settings) {
   return shapes;
 }
 
+// AM-6 mode kontur: satu shape (layer) per subpath — kontur luar maupun
+// lubang menjadi layer tersendiri (1 layer = 1 kontur). Urutan layer mengikuti
+// urutan subpaths: kontur luar, lalu lubangnya, lalu pulau — lubang dan pulau
+// berada setelah kontur luarnya pada daftar layer (asumsi urutan tumpukan;
+// belum diverifikasi pada perangkat nyata).
+function buildPerContourShapes(subpaths, settings) {
+  let shapes = '';
+  for (let index = 0; index < subpaths.length; index += 1) {
+    const subpath = subpaths[index];
+    const id = index + 1;
+    const box = ringBbox(subpath.points);
+    const pivotX = (box.minX + box.maxX) / 2;
+    const pivotY = (box.minY + box.maxY) / 2;
+    const fillColor = settings.contourColors
+      ? settings.contourColors[index]
+      : settings.globalColor;
+    shapes +=
+      '<shape id="' +
+      id +
+      '" label="Shape ' +
+      id +
+      '" startTime="0" endTime="' +
+      settings.totalTime +
+      '" fillType="color" mediaFillMode="fill">' +
+      '<transform>' +
+      '<location value="' +
+      formatNumber(pivotX) +
+      ',' +
+      formatNumber(pivotY) +
+      ',0.000000"/>' +
+      '</transform>' +
+      '<fillColor value="' +
+      fillColor +
+      '"/>' +
+      '<path d="' +
+      pathD(subpath.points, pivotX, pivotY) +
+      '"/>' +
+      '</shape>';
+  }
+  return shapes;
+}
+
 function validateCenterline(line, index) {
   if (
     !line ||
@@ -240,8 +300,8 @@ function componentColorAt(settings, componentIndex) {
 
 function resolveRepresentation(value) {
   if (value === undefined || value === null) return 'isi';
-  if (value !== 'isi' && value !== 'garis') {
-    throw new Error('Opsi representation tidak valid: harus "isi" atau "garis".');
+  if (value !== 'isi' && value !== 'garis' && value !== 'kontur') {
+    throw new Error('Opsi representation tidak valid: harus "isi", "garis", atau "kontur".');
   }
   return value;
 }
@@ -253,6 +313,18 @@ function resolveComponentColors(value, componentCount) {
       'Opsi componentColors tidak valid: panjang daftar warna (' +
         (Array.isArray(value) ? value.length : 'bukan array') +
         ') harus sama dengan jumlah komponen (' + componentCount + ').'
+    );
+  }
+  return value.map((color) => resolveFillColor(color));
+}
+
+function resolveContourColors(value, contourCount) {
+  if (value === undefined || value === null) return null;
+  if (!Array.isArray(value) || value.length !== contourCount) {
+    throw new Error(
+      'Opsi contourColors tidak valid: panjang daftar warna (' +
+        (Array.isArray(value) ? value.length : 'bukan array') +
+        ') harus sama dengan jumlah kontur (' + contourCount + ').'
     );
   }
   return value.map((color) => resolveFillColor(color));

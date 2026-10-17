@@ -621,6 +621,71 @@ export function runAmAdapterTests() {
     );
   });
 
+  /* ---------- AM-6 (v0.5.1): mode kontur — satu layer per kontur ---------- */
+
+  test('AM-6: mode kontur menulis satu shape per kontur (1 layer = 1 kontur)', () => {
+    const xml = buildAlightMotionXml(makeTwoComponentVectorData(), {
+      ...OPTIONS,
+      representation: 'kontur',
+    });
+    assert((xml.match(/<shape /g) || []).length === 3, 'tiga kontur menghasilkan tiga shape');
+    assert((xml.match(/<path /g) || []).length === 3, 'satu tag path per kontur');
+    assert(!xml.includes('ZM'), 'tidak ada token ZM: lubang tidak lagi bergabung dengan kontur luarnya');
+    const ids = [...xml.matchAll(/\slabel="Shape (\d+)"/g)].map((m) => m[1]);
+    assert(ids.join(',') === '1,2,3', 'label layer mengikuti urutan subpaths: ' + ids.join(','));
+    assertIncludes(xml, '<location value="15.000000,10.000000,0.000000"/>', 'pivot kontur luar A = pusat bbox A (15,10)');
+    assertIncludes(xml, '<location value="15.000000,12.500000,0.000000"/>', 'pivot lubang A = pusat bbox lubang (15,12.5)');
+    assertIncludes(xml, '<location value="75.000000,50.000000,0.000000"/>', 'pivot kontur luar B = pusat bbox B (75,50)');
+    const shapes = splitByShape(xml);
+    assert(shapes.length === 3, 'tiga segmen shape terpisah');
+    assertIncludes(shapes[0], 'M -15 -10L 15 -10L 15 10L -15 10L -15 -10Z', 'outline kontur luar A digeser ke pivotnya sendiri');
+    assertIncludes(shapes[1], 'M -5 -2.5L 5 -2.5L 5 2.5L -5 2.5L -5 -2.5Z', 'outline lubang A digeser ke pivotnya sendiri');
+    assertIncludes(shapes[2], 'M -15 -10L 15 -10L 15 10L -15 10L -15 -10Z', 'outline kontur luar B digeser ke pivotnya sendiri');
+    assert(validateAlightMotionXml(xml).valid === true, 'XML mode kontur lulus validator');
+  });
+
+  test('AM-6: contourColors menulis fillColor per layer kontur dan panjang salah ditolak', () => {
+    const xml = buildAlightMotionXml(makeTwoComponentVectorData(), {
+      ...OPTIONS,
+      representation: 'kontur',
+      contourColors: ['#E61923', '#2846E1', '#22C55E'],
+    });
+    const shapes = splitByShape(xml);
+    assert(shapes.length === 3, 'tiga layer kontur');
+    assertIncludes(shapes[0], '<fillColor value="#FFE61923"/>', 'fillColor kontur luar A');
+    assertIncludes(shapes[1], '<fillColor value="#FF2846E1"/>', 'fillColor lubang A');
+    assertIncludes(shapes[2], '<fillColor value="#FF22C55E"/>', 'fillColor kontur luar B');
+    assert(!xml.includes('#FF3B82F6'), 'warna global tidak dipakai bila contourColors tersedia');
+    assertThrows(
+      () =>
+        buildAlightMotionXml(makeTwoComponentVectorData(), {
+          ...OPTIONS,
+          representation: 'kontur',
+          contourColors: ['#E61923', '#2846E1'],
+        }),
+      'contourColors',
+      'contourColors lebih pendek dari jumlah kontur'
+    );
+    assertThrows(
+      () =>
+        buildAlightMotionXml(makeVectorData(), {
+          ...OPTIONS,
+          representation: 'kontur',
+          contourColors: ['#E61923', '#2846E1'],
+        }),
+      'contourColors',
+      'contourColors lebih panjang dari jumlah kontur'
+    );
+  });
+
+  test('AM-6: opsi representation tidak valid ditolak', () => {
+    assertThrows(
+      () => buildAlightMotionXml(makeVectorData(), { ...OPTIONS, representation: 'bulat' }),
+      'representation',
+      'representation tidak dikenal'
+    );
+  });
+
   /* ---------- EX (v0.5.0): mode warna asli dan mode garis pada pipeline ---------- */
 
   test('EX: warna asli (CV-1) mensampling warna dominan piksel sumber per komponen', () => {
@@ -683,6 +748,58 @@ export function runAmAdapterTests() {
     });
     assert(result.ok === false, 'ekspor mode garis pada bercak tanpa goresan layak harus gagal');
     assertIncludes(result.message, 'Tidak ada garis', 'pesan gagal menyebut ketiadaan garis');
+  });
+
+  /* ---------- EX (v0.5.1): mode kontur (AM-6) dan warna asli per kontur (CV-2) ---------- */
+
+  test('EX: mode kontur dengan warna asli mengekspor cincin dan pulau sebagai tiga layer berwarna area masing-masing', () => {
+    const canvas = makeFakeCanvas(21, 21, (x, y) => {
+      const dx = x - 10;
+      const dy = y - 10;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= 64 && d2 > 16) return [20, 20, 30, 255]; // badan cincin gelap
+      if (d2 <= 1) return [20, 20, 30, 255]; // pulau gelap di tengah lubang
+      return [240, 240, 240, 255]; // latar terang, termasuk area lubang
+    });
+    const result = requestXmlExport({
+      image: { name: 'uji.png', canvas },
+      vector: { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' },
+      exportRepresentation: 'kontur',
+      exportColorMode: 'asli',
+      exportName: 'kontur-cincin',
+    });
+    assert(result.ok === true, 'ekspor mode kontur berhasil: ' + (result.message || ''));
+    const shapes = splitByShape(result.xml);
+    assert(shapes.length === 3, 'kontur luar, lubang, dan pulau menghasilkan tiga layer (1 layer = 1 kontur)');
+    assertIncludes(shapes[0], '<fillColor value="#FF14141E"/>', 'warna kontur luar = warna dominan badan cincin');
+    assertIncludes(shapes[1], '<fillColor value="#FFF0F0F0"/>', 'warna kontur lubang = warna dominan latar di dalam lubang (CV-2)');
+    assertIncludes(shapes[2], '<fillColor value="#FF14141E"/>', 'warna kontur pulau = warna dominan pulau');
+    assert(!result.xml.includes('#FF3B82F6'), 'warna global tidak dipakai pada mode warna asli');
+    assert(validateAlightMotionXml(result.xml).valid === true, 'XML mode kontur lulus validator');
+  });
+
+  test('EX: mode kontur dengan warna pilihan memakai satu warna global pada seluruh layer', () => {
+    const canvas = makeFakeCanvas(21, 21, (x, y) => {
+      const dx = x - 10;
+      const dy = y - 10;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= 64 && d2 > 16) return [20, 20, 30, 255];
+      if (d2 <= 1) return [20, 20, 30, 255];
+      return [240, 240, 240, 255];
+    });
+    const result = requestXmlExport({
+      image: { name: 'uji.png', canvas },
+      vector: { mode: 'gelap', threshold: 50, simplification: 'sedang', color: '#3B82F6' },
+      exportRepresentation: 'kontur',
+      exportName: 'kontur-pilihan',
+    });
+    assert(result.ok === true, 'ekspor mode kontur warna pilihan berhasil: ' + (result.message || ''));
+    const shapes = splitByShape(result.xml);
+    assert(shapes.length === 3, 'tiga layer kontur');
+    for (const shape of shapes) {
+      assertIncludes(shape, '<fillColor value="#FF3B82F6"/>', 'seluruh layer memakai warna global');
+    }
+    assert(validateAlightMotionXml(result.xml).valid === true, 'XML mode kontur lulus validator');
   });
 
   return {
