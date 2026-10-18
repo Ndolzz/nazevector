@@ -1,7 +1,7 @@
 # SDD — Naze Vector Website MVP
 
 Dokumen: Spesifikasi dan Desain (SDD) untuk Naze Vector.
-Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-17.
+Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-18.
 
 ## 1. Ringkasan
 
@@ -159,6 +159,7 @@ Belum diimplementasikan (ditandai eksplisit di UI): penerapan keyframe preset ke
 | PF-1 | Performa pratinjau siluet dan vektorisasi | Selesai (v0.4.3): bottleneck terukur (operasi hash Set + panggilan closure per piksel pada pemindaian area penuh); perbaikan = tabel tepi bit-packed, resolusi kerja pratinjau maks 700 px, debounce 150 ms; keluaran geometri terbukti identik 66/66 perbandingan mesin lama vs baru; lihat bagian 13. Pengukuran waktu pada perangkat nyata belum tersedia |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
 | TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.5.1): 78 uji murni (18 VE + 36 AM/XV/EX termasuk 3 pemisah layer AM-4, 4 mode garis/warna AM-5, 3 integrasi EX v0.5.0, 3 mode kontur AM-6, 2 integrasi mode kontur EX/CV-2 + 11 fixture regresi termasuk 2 geometri multi-layer + 5 pembantu pratinjau P1 + 8 ekstraksi centerline VE-3 termasuk pelabelan region) berjalan via tests/index.html di peramban tanpa Node; uji runtime peramban belum tercakup |
+| IPR-1 | Parser teks XML proyek/preset Alight Motion: pemetaan scene, media, layer, keyframe, slot aset, dan pelaporan struktur belum didukung (fondasi Instant Preset Remixer) | Selesai: js/modules/presetParser.js murni + 18 uji pada tests/presetParser.test.js lulus di sandbox tanpa peramban (2026-10-18); uji peramban (tests/index.html, kini 96 kasus) dan preset nyata pengguna menunggu (lihat bagian 17); IPR-2 (penggantian aset selektif) belum diimplementasikan |
 
 ## 6. Catatan verifikasi
 
@@ -700,3 +701,39 @@ Tangkapan layar pengguna 2026-10-17 (Alight Motion 5.0.273 Android, editor titik
 | RF-15 | Mode kontur pada panel ekspor | 16.2 butir 5: opsi ketiga #export-representation + pesan sukses khusus; 16.3: 78/78 | Diimplementasikan (v0.5.1) |
 | TS-1 | Uji impor nyata | Sisa: mode kontur (tiap kontur sebagai layer tersendiri, urutan tumpukan lubang) belum diuji di perangkat nyata | Terpenuhi untuk mode isi statis; sisa menunggu uji lapangan |
 | TS-2 | Uji otomatis ringan | 78 uji murni termasuk 3 kasus AM-6 dan 2 kasus EX mode kontur | Terlayani sebagian |
+
+## 17. Implementasi IPR-1: parser teks XML proyek Alight Motion (fondasi Instant Preset Remixer)
+
+### 17.1 Konteks dan cakupan
+
+Prioritas produk adalah Instant Preset Remixer (IPR): pengguna memasukkan preset/proyek Alight Motion, sistem mendeteksi slot aset, pengguna mengganti aset terpilih, aset lain dipertahankan, hasil divalidasi dan diekspor. IPR-1 hanya mencakup fondasi pembacaan: modul baru js/modules/presetParser.js (murni, tanpa DOM, tanpa dependensi baru) beserta tests/presetParser.test.js (18 kasus) dan pendaftarannya pada tests/index.html. Modul mengekspor parseXmlTree(text) dan parseAlightMotionProject(text). Tidak ada perubahan pada modul ekspor, vektorisasi, validasi ekspor, maupun UI; kartu Instant Preset Remixer pada beranda tetap berlabel "Dalam pengembangan".
+
+### 17.2 Keputusan desain
+
+1. Parser node teks tulisan tangan (bukan DOMParser) agar dapat diuji tanpa peramban dan berperilaku identik di semua lingkungan; menangani prolog, komentar, tag self-closing, atribut berkutip ganda/tunggal (termasuk nilai yang memuat karakter > atau /), CRLF, serta kesalahan struktural yang dilaporkan dengan nama tag dan posisi.
+2. parseAlightMotionProject memetakan scene, media, layer shape (urutan dokumen dipertahankan), keyframe kf (t, v, e utuh tanpa penafsiran semantik), pathD, fillColor, transform statis, properti, efek, dan slot aset (uri, status deklarasi <media>, jenis, nama berkas, daftar layer pemakai).
+3. Struktur yang belum didukung dilaporkan eksplisit pada result.unsupported beserta penjelasan per temuan: efek, blending, path-stroke, border, shadow, grup bersarang, layer teks, elemen tak dikenal, aset fillImage tanpa deklarasi <media>, dan atribut scene wajib yang hilang.
+4. Parser tidak menilai validitas impor (tugas xmlValidation dan uji lapangan TS-1), tidak mengubah berkas sumber, dan tidak membuat klaim pemeliharaan keyframe/struktur; ia hanya memetakan dan melaporkan. Rencana IPR-2: penggantian aset selektif pada tingkat teks (atribut fillImage dan uri pada deklarasi media terkait) sehingga seluruh bagian berkas lain terjaga byte demi byte.
+5. Fixture: REAL_AM_EXPORT_FIXTURE dan REAL_AM_IMPORTED_PATH_FIXTURE disalin apa adanya dari tests/amImportFixture.test.js tanpa perubahan data.
+
+### 17.3 Verifikasi (dijalankan sebelum push, sandbox tanpa peramban)
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| Rangkaian 18 uji parser dijalankan dari isi berkas tests/presetParser.test.js itu sendiri (bukan harness sementara), terhadap kedua fixture asli | Lulus 18/18 |
+| Identitas fixture dengan tests/amImportFixture.test.js (diekstrak langsung dari berkas repositori) | Identik |
+| Audit cakupan commit: tepat 4 berkas (js/modules/presetParser.js, tests/presetParser.test.js, tests/index.html, docs/SDD.md); modul ekspor, vektorisasi, dan UI tidak tersentuh | Lulus |
+
+### 17.4 Keterbatasan (wajib dibaca sebelum klaim apa pun)
+
+- tests/index.html (78 uji lama + 18 uji parser = 96 kasus) BELUM dijalankan di peramban; sandbox tidak memiliki peramban. Pendaftaran suite pada harness diverifikasi secara statis, bukan melalui eksekusi runtime.
+- Parser teruji hanya terhadap dua fixture ekspor asli AM 5.0.273 (Android) dan kasus sintetis; TIDAK diklaim valid untuk semua preset/proyek Alight Motion. Versi aplikasi lain, preset marketplace, grup bersarang nyata, layer teks nyata, dan media video/audio belum pernah diamati.
+- Parser tidak menilai validitas impor; preset yang berhasil diparse belum tentu aman untuk penggantian aset - keamanannya ditentukan IPR-2 dan uji lapangan.
+- Keyframe dibaca apa adanya (t, v, e); tidak ada klaim pemeliharaan semantik keyframe sebelum uji lapangan di Alight Motion.
+
+### 17.5 Traceability
+
+| ID | Butir | Bukti | Status |
+|----|-------|-------|--------|
+| IPR-1 | Parser teks XML proyek/preset Alight Motion: slot aset, keyframe, pelaporan struktur belum didukung | 17.2; 17.3: 18/18 sandbox dari isi berkas uji | Selesai (uji peramban dan preset nyata pengguna menunggu) |
+| IPR-2 | Penggantian aset selektif dengan mempertahankan aset lain | Direncanakan sebagai penggantian tingkat teks (lihat 17.2 butir 4) | Belum diimplementasikan |
