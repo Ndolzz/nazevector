@@ -159,7 +159,8 @@ Belum diimplementasikan (ditandai eksplisit di UI): penerapan keyframe preset ke
 | PF-1 | Performa pratinjau siluet dan vektorisasi | Selesai (v0.4.3): bottleneck terukur (operasi hash Set + panggilan closure per piksel pada pemindaian area penuh); perbaikan = tabel tepi bit-packed, resolusi kerja pratinjau maks 700 px, debounce 150 ms; keluaran geometri terbukti identik 66/66 perbandingan mesin lama vs baru; lihat bagian 13. Pengukuran waktu pada perangkat nyata belum tersedia |
 | GT-1 | Aktifkan GitHub Pages / deployment statis | Konfigurasi manual di pengaturan repositori |
 | TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.5.1): 78 uji murni (18 VE + 36 AM/XV/EX termasuk 3 pemisah layer AM-4, 4 mode garis/warna AM-5, 3 integrasi EX v0.5.0, 3 mode kontur AM-6, 2 integrasi mode kontur EX/CV-2 + 11 fixture regresi termasuk 2 geometri multi-layer + 5 pembantu pratinjau P1 + 8 ekstraksi centerline VE-3 termasuk pelabelan region) berjalan via tests/index.html di peramban tanpa Node; uji runtime peramban belum tercakup |
-| IPR-1 | Parser teks XML proyek/preset Alight Motion: pemetaan scene, media, layer, keyframe, slot aset, dan pelaporan struktur belum didukung (fondasi Instant Preset Remixer) | Selesai: js/modules/presetParser.js murni + 18 uji pada tests/presetParser.test.js lulus di sandbox tanpa peramban (2026-10-18); uji peramban (tests/index.html, kini 96 kasus) dan preset nyata pengguna menunggu (lihat bagian 17); IPR-2 (penggantian aset selektif) belum diimplementasikan |
+| IPR-1 | Parser teks XML proyek/preset Alight Motion: pemetaan scene, media, layer, keyframe, slot aset, dan pelaporan struktur belum didukung (fondasi Instant Preset Remixer) | Selesai: js/modules/presetParser.js murni + 18 uji pada tests/presetParser.test.js lulus di sandbox tanpa peramban (2026-10-18); uji peramban (tests/index.html, kini 113 kasus) dan preset nyata pengguna menunggu (lihat bagian 17); IPR-2 (penggantian aset selektif) dituntaskan pada bagian 18 |
+| IPR-2 | Penggantian aset individual: uri media dan fillImage diganti lewat splice teks presisi, metadata hanya pada atribut yang sudah ada, aset lain terjaga byte demi byte, hasil diparse ulang dan divalidasi | Selesai: js/modules/presetRemixer.js (replaceAssets) + parser aditif v2 (posisi sumber) + 17 uji pada tests/presetRemixer.test.js lulus di sandbox tanpa peramban (2026-10-18); uji peramban (tests/index.html, kini 113 kasus) dan penggantian aset nyata di Alight Motion menunggu uji lapangan (lihat bagian 18) |
 
 ## 6. Catatan verifikasi
 
@@ -736,4 +737,45 @@ Prioritas produk adalah Instant Preset Remixer (IPR): pengguna memasukkan preset
 | ID | Butir | Bukti | Status |
 |----|-------|-------|--------|
 | IPR-1 | Parser teks XML proyek/preset Alight Motion: slot aset, keyframe, pelaporan struktur belum didukung | 17.2; 17.3: 18/18 sandbox dari isi berkas uji | Selesai (uji peramban dan preset nyata pengguna menunggu) |
-| IPR-2 | Penggantian aset selektif dengan mempertahankan aset lain | Direncanakan sebagai penggantian tingkat teks (lihat 17.2 butir 4) | Belum diimplementasikan |
+| IPR-2 | Penggantian aset selektif dengan mempertahankan aset lain | Direncanakan sebagai penggantian tingkat teks (lihat 17.2 butir 4); terlaksana pada bagian 18 | Diimplementasikan (lihat bagian 18) |
+
+## 18. Implementasi IPR-2: penggantian aset individual dengan mempertahankan aset lain
+
+### 18.1 Konteks dan cakupan
+
+IPR-2 melanjutkan fondasi IPR-1 menuju alur Instant Preset Remixer: pengguna memasukkan preset, sistem mendeteksi slot aset, pengguna mengganti aset terpilih, aset lain dipertahankan, hasil divalidasi, lalu diekspor. Tahap ini menambahkan modul baru js/modules/presetRemixer.js (replaceAssets) dan peningkatan aditif parser IPR-1 (v2): setiap node XML menyimpan posisi sumber _source {start, openEnd}, entri media/layer menyimpan _source, dan slot aset menyimpan mediaIndexes, layerIndexes, serta declarationCount. Perubahan TIDAK menyentuh modul ekspor, vektorisasi, validasi ekspor (xmlValidation hanya dibaca), maupun UI; belum ada antarmuka pengguna untuk fitur ini.
+
+### 18.2 Keputusan desain
+
+1. Penggantian dilakukan pada tingkat teks (splice presisi dari posisi sumber parser), bukan render ulang dokumen: hanya byte nilai uri pada deklarasi <media> terkait dan fillImage pada tag pembuka layer pemakai yang dipotong dan diganti. Uji round-trip byte membuktikan seluruh byte lain identik.
+2. Kontrak replaceAssets(xml, replacements): replacements adalah daftar {fromUri, toUri, filename?, title?, size?, width?, height?}. Metadata hanya menimpa atribut yang SUDAH ADA pada deklarasi <media>; atribut yang tidak ada dilewati dengan warning (tidak menambah atribut baru agar pola ekspor asli tidak berubah). size/width/height dibulatkan ke bilangan bulat.
+3. Penolakan eksplisit (ok false + pesan sebab, tanpa keluaran xml): fromUri yang bukan slot terdaftar; slot tanpa deklarasi <media>; fromUri atau toUri duplikat; toUri yang bertabrakan dengan uri aset yang sudah ada (termasuk penggantian tanpa efek); toUri/filename/title kosong atau memuat karakter terlarang (kutip ganda, <, >, &); size/width/height non-angka; daftar penggantian kosong/bukan array; XML masukan rusak.
+4. Deklarasi <media> ganda dengan uri sama: seluruh deklarasi diperbarui disertai warning eksplisit (declarationCount dilaporkan pada slot).
+5. Setelah splice, hasil SELALU diparse ulang dan dibandingkan dengan masukan: jumlah media/layer/slot harus sama; scene harus identik; setiap layer harus identik di luar fillImage (JSON compare); setiap media yang tidak diganti harus identik (JSON compare); slot hasil harus terdeklarasi; slot yang tidak diganti harus tetap ada. Hasil juga menjalani validateAlightMotionXml; ok hanya true bila seluruh pemeriksaan lulus. Validitas struktur XML dipisahkan secara eksplisit dari keberhasilan impor nyata di Alight Motion.
+6. Kontrak hasil: {ok, error, xml, replacements, untouchedSlots, warnings, validation}. untouchedSlots berisi uri aset yang tidak diganti. Label layer tidak diubah (nama aset lama pada label dipertahankan apa adanya).
+
+### 18.3 Verifikasi (dijalankan sebelum push, sandbox tanpa peramban)
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| 17 uji baru tests/presetRemixer.test.js (penggantian tunggal dan ganda, round-trip byte, keyframe/durasi/urutan layer via JSON compare, metadata lengkap dengan pembulatan, media tanpa filename, deklarasi ganda, tujuh kasus penolakan, validator) dijalankan dari isi berkas uji itu sendiri | Lulus 17/17 |
+| Regresi: 96 uji lama (ve 18, sp 5, cl 8, am 36, fx 11, pp 18) terhadap parser v2 - seluruh suite tetap dijalankan dari berkas repositori | Lulus 96/96 |
+| Total kasus terdaftar tests/index.html (78 + 18 + 17) | 113 |
+| Fixture PB1/PB19 diekstrak langsung dari tests/presetParser.test.js repositori tanpa perubahan data | Identik |
+| Audit cakupan diff: 5 berkas (js/modules/presetParser.js, js/modules/presetRemixer.js, tests/presetRemixer.test.js, tests/index.html, docs/SDD.md); modul ekspor, vektorisasi, validasi ekspor, dan UI tidak tersentuh | Lulus |
+
+### 18.4 Keterbatasan (wajib dibaca sebelum klaim apa pun)
+
+- Seluruh pengujian di atas lulus di sandbox TANPA peramban; tests/index.html (113 kasus) belum dijalankan di peramban. Pendaftaran suite pr diverifikasi secara statis, bukan melalui eksekusi runtime.
+- Penggantian teruji hanya terhadap dua fixture ekspor asli AM 5.0.273 (Android) dan kasus sintetis; TIDAK diklaim valid untuk semua preset Alight Motion. Media video/audio, grup bersarang nyata, dan preset marketplace belum pernah diamati.
+- Validitas struktural (validator XV) BUKAN jaminan keberhasilan impor: apakah Alight Motion menerima uri aset baru (content:// atau am:) hasil penggantian belum pernah diuji pada perangkat nyata - uji lapangan wajib sebelum fitur ini diiklankan berfungsi.
+- Keyframe, durasi, dan urutan layer terbukti terjaga pada kedua fixture melalui JSON compare dan round-trip byte; namun perilaku runtime Alight Motion terhadap hasil penggantian tetap menunggu uji lapangan.
+- Belum ada antarmuka impor/ekspor untuk alur IPR; replaceAssets saat ini adalah API modul yang siap dirangkai pada tahap integrasi berikutnya (IPR-3).
+
+### 18.5 Traceability
+
+| ID | Butir | Bukti | Status |
+|----|-------|-------|--------|
+| IPR-1 | Parser fondasi | Tidak berubah status (lihat bagian 17); parser v2 bersifat aditif dan 18 uji lama tetap lulus | Selesai (uji peramban + lapangan menunggu) |
+| IPR-2 | Penggantian aset selektif dengan mempertahankan aset lain | 18.2; 18.3: 17/17 sandbox + regresi 96/96 | Selesai (uji peramban + penggantian aset nyata menunggu uji lapangan) |
+| TS-2 | Uji otomatis ringan | 113 kasus murni terdaftar pada harness | Terlayani sebagian (sandbox; peramban menunggu) |

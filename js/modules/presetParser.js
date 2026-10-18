@@ -1,5 +1,8 @@
 // js/modules/presetParser.js
 // Gate 4A-1 / IPR-1: parser teks XML proyek/preset Alight Motion.
+// IPR-2 (perubahan aditif): setiap node menyimpan posisi sumber pada teks
+// masukan (_source: start, openEnd) dan slot aset menyimpan indeks media/layer
+// sehingga presetRemixer dapat mengganti atribut lewat splice teks presisi.
 // Murni (tanpa DOM, tanpa dependensi): membaca node teks XML, memetakan aset,
 // layer, keyframe, dan struktur yang belum didukung. Parser ini TIDAK menilai
 // validitas impor - itu tugas xmlValidation dan uji lapangan (TS-1).
@@ -64,7 +67,7 @@ export function parseXmlTree(text) {
     if (selfClose) raw = raw.replace(/\/\s*$/, '');
     const nameMatch = raw.match(/^([A-Za-z_][A-Za-z0-9_.:-]*)/);
     if (!nameMatch) return { ok: false, error: 'Nama tag tidak valid pada posisi ' + lt + '.', root: null };
-    const node = { tag: nameMatch[1], attrs: parseAttrs(raw.slice(nameMatch[1].length)), children: [] };
+    const node = { tag: nameMatch[1], attrs: parseAttrs(raw.slice(nameMatch[1].length)), children: [], _source: { start: lt, openEnd: gt } };
     stack[stack.length - 1].children.push(node);
     if (!selfClose) stack.push(node);
     i = gt + 1;
@@ -112,6 +115,7 @@ function readKeyframes(propNode) {
 function readShape(node, groups, unsupported) {
   const a = node.attrs;
   const layer = {
+    _source: node._source,
     kind: 'shape',
     id: a.id !== undefined ? String(a.id) : null,
     label: a.label || null,
@@ -204,6 +208,7 @@ export function parseAlightMotionProject(text) {
           size: num(child.attrs.size, null),
           width: num(child.attrs.width, null),
           height: num(child.attrs.height, null),
+          _source: child._source,
         });
       } else if (child.tag === 'shape') {
         layers.push(readShape(child, inheritedGroups, result.unsupported));
@@ -221,26 +226,34 @@ export function parseAlightMotionProject(text) {
   result.layers = layers;
 
   const byUri = new Map();
-  for (const layer of layers) {
+  layers.forEach((layer, layerIndex) => {
     const uri = layer.fillImage;
-    if (!uri) continue;
+    if (!uri) return;
     if (!byUri.has(uri)) {
-      byUri.set(uri, { uri, media: result.media.find((m) => m.uri === uri) || null, layerIds: [] });
+      byUri.set(uri, { uri, layerIds: [], layerIndexes: [] });
     }
     byUri.get(uri).layerIds.push(layer.id !== null ? String(layer.id) : '(tanpa id)');
-  }
+    byUri.get(uri).layerIndexes.push(layerIndex);
+  });
   const slots = [];
   for (const entry of byUri.values()) {
-    const type = entry.media && entry.media.type ? entry.media.type : '';
+    const mediaIndexes = [];
+    result.media.forEach((m, mediaIndex) => { if (m.uri === entry.uri) mediaIndexes.push(mediaIndex); });
+    const declared = mediaIndexes.length > 0;
+    const media = declared ? result.media[mediaIndexes[0]] : null;
+    const type = media && media.type ? media.type : '';
     const isImage = type.startsWith('image/') || entry.uri.startsWith('content://') || entry.uri.startsWith('am:');
     const isMedia = type.startsWith('video/') || type.startsWith('audio/');
     const slot = {
       uri: entry.uri,
-      declared: entry.media !== null,
+      declared,
       kind: isImage ? 'image' : (isMedia ? 'media' : 'unknown'),
-      filename: entry.media ? (entry.media.filename || entry.media.title) : null,
+      filename: media ? (media.filename || media.title) : null,
       mediaType: type || null,
       layers: entry.layerIds,
+      mediaIndexes,
+      layerIndexes: entry.layerIndexes,
+      declarationCount: mediaIndexes.length,
     };
     if (!slot.declared) {
       result.unsupported.push({ kind: 'undeclaredAsset', detail: 'fillImage "' + entry.uri + '" tidak memiliki deklarasi <media>.', note: UNSUPPORTED_NOTE.undeclaredAsset });
