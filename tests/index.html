@@ -69,8 +69,8 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Uji Naze Vector — VE-1 + AM-1/XV-1/EX-1 + Regresi Impor (AM-2/XV-2) + Pratinjau P1 + Pemisah Layer (AM-4) + Garis Centerline &amp; Warna Asli (VE-3/CV-1/AM-5) + Satu Layer per Kontur (AM-6/CV-2) + Parser Preset (IPR-1) + Pengganti Aset (IPR-2)</h1>
-    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js, tests/amAdapter.test.js, tests/amImportFixture.test.js, suite pembantu pratinjau (P1), dan suite ekstraksi garis centerline (VE-3), serta tests/presetParser.test.js (IPR-1) dan tests/presetRemixer.test.js (IPR-2) di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
+    <h1>Uji Naze Vector — VE-1 + AM-1/XV-1/EX-1 + Regresi Impor (AM-2/XV-2) + Pratinjau P1 + Pemisah Layer (AM-4) + Garis Centerline &amp; Warna Asli (VE-3/CV-1/AM-5) + Satu Layer per Kontur (AM-6/CV-2) + Parser Preset (IPR-1) + Pengganti Aset (IPR-2) + Alur Remixer (IPR-3)</h1>
+    <p class="sub">Halaman ini menjalankan tests/vectorEngine.test.js, tests/amAdapter.test.js, tests/amImportFixture.test.js, suite pembantu pratinjau (P1), dan suite ekstraksi garis centerline (VE-3), serta tests/presetParser.test.js (IPR-1) dan tests/presetRemixer.test.js (IPR-2), dan tests/presetRemixWorkflow.test.js (IPR-3) di peramban. Layani direktori ini melalui server HTTP lokal (ES Modules tidak dimuat via file://).</p>
     <div class="summary" id="summary"><p class="pending">Memuat modul uji…</p></div>
     <div id="cases"></div>
   </div>
@@ -80,6 +80,7 @@
     import { runAmImportFixtureTests } from './amImportFixture.test.js';
     import { runPresetParserTests } from './presetParser.test.js';
     import { runPresetRemixerTests } from './presetRemixer.test.js';
+    import { runPresetRemixWorkflowTests } from './presetRemixWorkflow.test.js';
 
     const summary = document.getElementById('summary');
     const cases = document.getElementById('cases');
@@ -92,11 +93,12 @@
       const cl = runCenterlineTests();
       const pp = runPresetParserTests();
       const pr = runPresetRemixerTests();
+      const wf = runPresetRemixWorkflowTests();
       results = {
-        total: ve.total + am.total + fx.total + sp.total + cl.total + pp.total + pr.total,
-        passed: ve.passed + am.passed + fx.passed + sp.passed + cl.passed + pp.passed + pr.passed,
-        failed: ve.failed + am.failed + fx.failed + sp.failed + cl.failed + pp.failed + pr.failed,
-        failures: ve.failures.concat(am.failures, fx.failures, sp.failures, cl.failures, pp.failures, pr.failures),
+        total: ve.total + am.total + fx.total + sp.total + cl.total + pp.total + pr.total + wf.total,
+        passed: ve.passed + am.passed + fx.passed + sp.passed + cl.passed + pp.passed + pr.passed + wf.passed,
+        failed: ve.failed + am.failed + fx.failed + sp.failed + cl.failed + pp.failed + pr.failed + wf.failed,
+        failures: ve.failures.concat(am.failures, fx.failures, sp.failures, cl.failures, pp.failures, pr.failures, wf.failures),
       };
     } catch (error) {
       summary.textContent = '';

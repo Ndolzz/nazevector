@@ -8,6 +8,7 @@ import { initPreviewPanel } from './ui/previewPanel.js';
 import { initVectorPanel } from './ui/vectorPanel.js';
 import { initAnimationPanel } from './ui/animationPanel.js';
 import { initExportPanel } from './ui/exportPanel.js';
+import { initPresetRemixerPanel } from './ui/presetRemixerPanel.js';
 import { renderFeatureStatusStrip } from './ui/statusStrip.js';
 
 const store = createStore(initialState);
@@ -18,5 +19,6 @@ initPreviewPanel(store);
 initVectorPanel(store);
 initAnimationPanel(store);
 initExportPanel(store);
+initPresetRemixerPanel();
 renderFeatureStatusStrip(qs('#feature-status-strip'));
 renderFeatureStatusStrip(qs('#home-status-strip'));

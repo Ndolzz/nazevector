@@ -959,3 +959,97 @@ html, body { overflow-x: clip; }
 
 /* P1: kolom samping studio lentur pada 721-960 px */
 .workspace { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); }
+
+/* ---------- Halaman Remixer (IPR-3) ---------- */
+
+.remixer-workspace { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+.remixer-card { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.remixer-parsing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding: 26px 20px;
+  color: var(--text-2);
+  font-size: 0.88rem;
+}
+
+.remixer-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.remixer-summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-warm);
+  font-size: 0.84rem;
+}
+.remixer-summary-label { color: var(--text-2); }
+.remixer-summary-value { font-weight: 700; color: var(--ink); }
+
+.remixer-unsupported {
+  border: 1.5px solid var(--orange);
+  background: var(--orange-soft);
+  color: #7C3A05;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.86rem;
+}
+.remixer-unsupported-title { margin: 0 0 6px; font-weight: 800; }
+.remixer-unsupported-list { margin: 0; padding-left: 18px; }
+
+.remixer-slot-title { margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+
+.remixer-slots { display: flex; flex-direction: column; gap: 12px; }
+
+.remixer-slot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface-warm);
+}
+
+.remixer-slot-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.remixer-slot-kind { font-size: 0.8rem; color: var(--text-2); }
+
+.remixer-slot-uri {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--ink);
+  word-break: break-all;
+  background: var(--surface);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+
+.remixer-slot-file { margin: 0; font-size: 0.82rem; color: var(--text-2); }
+
+.remixer-replace-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.remixer-uri-input { flex: 1 1 240px; }
+
+.remixer-slot-info { margin: 0; font-size: 0.8rem; color: var(--text-2); }
+
+/* Jangkar terbatas halaman Remixer: kelas dengan display fleksibel tidak boleh
+   menimpa atribut hidden (penampilan UA dapat dikalahkan display milik penulis). */
+#remixer-alert[hidden],
+#remixer-panel[hidden],
+#remixer-parsing[hidden],
+#remixer-analysis[hidden],
+#remixer-result[hidden],
+#remixer-message[hidden],
+#remixer-unsupported[hidden] { display: none; }

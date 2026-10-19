@@ -161,6 +161,7 @@ Belum diimplementasikan (ditandai eksplisit di UI): penerapan keyframe preset ke
 | TS-2 | Uji otomatis ringan (parsing modul, unit silhouette) | Terlayani sebagian (v0.5.1): 78 uji murni (18 VE + 36 AM/XV/EX termasuk 3 pemisah layer AM-4, 4 mode garis/warna AM-5, 3 integrasi EX v0.5.0, 3 mode kontur AM-6, 2 integrasi mode kontur EX/CV-2 + 11 fixture regresi termasuk 2 geometri multi-layer + 5 pembantu pratinjau P1 + 8 ekstraksi centerline VE-3 termasuk pelabelan region) berjalan via tests/index.html di peramban tanpa Node; uji runtime peramban belum tercakup |
 | IPR-1 | Parser teks XML proyek/preset Alight Motion: pemetaan scene, media, layer, keyframe, slot aset, dan pelaporan struktur belum didukung (fondasi Instant Preset Remixer) | Selesai: js/modules/presetParser.js murni + 18 uji pada tests/presetParser.test.js lulus di sandbox tanpa peramban (2026-10-18); uji peramban (tests/index.html, kini 113 kasus) dan preset nyata pengguna menunggu (lihat bagian 17); IPR-2 (penggantian aset selektif) dituntaskan pada bagian 18 |
 | IPR-2 | Penggantian aset individual: uri media dan fillImage diganti lewat splice teks presisi, metadata hanya pada atribut yang sudah ada, aset lain terjaga byte demi byte, hasil diparse ulang dan divalidasi | Selesai: js/modules/presetRemixer.js (replaceAssets) + parser aditif v2 (posisi sumber) + 17 uji pada tests/presetRemixer.test.js lulus di sandbox tanpa peramban (2026-10-18); uji peramban (tests/index.html, kini 113 kasus) dan penggantian aset nyata di Alight Motion menunggu uji lapangan (lihat bagian 18) |
+| IPR-3 | Integrasi antarmuka Instant Preset Remixer: impor berkas proyek, analisis slot aset, pengisian uri pengganti per slot terpilih, perakitan ulang via replaceAssets, validasi, dan unduhan lokal | Selesai: js/modules/presetRemixWorkflow.js (orkestrasi murni) + js/ui/presetRemixerPanel.js + halaman Remixer + 11 uji pada tests/presetRemixWorkflow.test.js lulus di sandbox tanpa peramban (2026-10-19); panel DOM dan uji peramban (tests/index.html, kini 124 kasus) menunggu, penerimaan hasil oleh Alight Motion menunggu uji lapangan (lihat bagian 19) |
 
 ## 6. Catatan verifikasi
 
@@ -770,7 +771,7 @@ IPR-2 melanjutkan fondasi IPR-1 menuju alur Instant Preset Remixer: pengguna mem
 - Penggantian teruji hanya terhadap dua fixture ekspor asli AM 5.0.273 (Android) dan kasus sintetis; TIDAK diklaim valid untuk semua preset Alight Motion. Media video/audio, grup bersarang nyata, dan preset marketplace belum pernah diamati.
 - Validitas struktural (validator XV) BUKAN jaminan keberhasilan impor: apakah Alight Motion menerima uri aset baru (content:// atau am:) hasil penggantian belum pernah diuji pada perangkat nyata - uji lapangan wajib sebelum fitur ini diiklankan berfungsi.
 - Keyframe, durasi, dan urutan layer terbukti terjaga pada kedua fixture melalui JSON compare dan round-trip byte; namun perilaku runtime Alight Motion terhadap hasil penggantian tetap menunggu uji lapangan.
-- Belum ada antarmuka impor/ekspor untuk alur IPR; replaceAssets saat ini adalah API modul yang siap dirangkai pada tahap integrasi berikutnya (IPR-3).
+- Belum ada antarmuka impor/ekspor untuk alur IPR; replaceAssets saat ini adalah API modul yang siap dirangkai pada tahap integrasi berikutnya (IPR-3). Kini tersedia melalui IPR-3; lihat bagian 19.
 
 ### 18.5 Traceability
 
@@ -778,4 +779,68 @@ IPR-2 melanjutkan fondasi IPR-1 menuju alur Instant Preset Remixer: pengguna mem
 |----|-------|-------|--------|
 | IPR-1 | Parser fondasi | Tidak berubah status (lihat bagian 17); parser v2 bersifat aditif dan 18 uji lama tetap lulus | Selesai (uji peramban + lapangan menunggu) |
 | IPR-2 | Penggantian aset selektif dengan mempertahankan aset lain | 18.2; 18.3: 17/17 sandbox + regresi 96/96 | Selesai (uji peramban + penggantian aset nyata menunggu uji lapangan) |
-| TS-2 | Uji otomatis ringan | 113 kasus murni terdaftar pada harness | Terlayani sebagian (sandbox; peramban menunggu) |
+| TS-2 | Uji otomatis ringan | 113 kasus terdaftar pada harness sandbox (kini 124 setelah IPR-3) | Terlayani sebagian (sandbox; peramban menunggu) |
+
+## 19. Implementasi IPR-3: integrasi antarmuka Instant Preset Remixer
+
+IPR-3 merangkai parser proyek (IPR-1, bagian 17) dan penggantian aset selektif (IPR-2, bagian 18) menjadi alur ujung-ke-ujung pada antarmuka: impor berkas proyek Alight Motion, analisis slot aset, pengisian uri pengganti untuk slot terpilih, perakitan ulang melalui replaceAssets, validasi struktur hasil, dan unduhan berkas proyek yang dimodifikasi. Seluruh pemrosesan berjalan lokal di peramban — tanpa unggahan ke server, tanpa autentikasi, tanpa dependensi baru, dan tanpa layanan latar belakang. Algoritma parser dan replaceAssets tidak diubah sama sekali pada tahap ini.
+
+### 19.1 Konteks dan cakupan
+
+- Alur terkecil yang lengkap: pilih berkas proyek, analisis slot, pilih slot dan isi uri pengganti, rakit ulang, validasi, unduh.
+- Batas masukan: ekstensi .xml adalah jalur utama (pemilih berkas Android sering melaporkan tipe MIME kosong); MIME application/xml, text/xml, atau text/plain diterima sebagai jalur alternatif bila ekstensi tidak tersedia; ukuran berkas 1 byte hingga 15 MB (PRESET_MAX_BYTES); berkas kosong ditolak eksplisit.
+- Tidak ada pembuatan uri otomatis. Peramban tidak dapat memperoleh ID MediaStore (content://) dan semantik uri am: belum terverifikasi, sehingga uri pengganti diisi manual oleh pengguna: wajib tidak kosong, maksimum 2048 karakter (REMIX_URI_MAX_LENGTH), dan menolak karakter kutip ganda, <, >, &.
+- Berkas gambar per slot bersifat opsional dan hanya menyuplai metadata (filename, size, width, height) yang ditulis replaceAssets pada atribut yang sudah ada; atribut title tidak disentuh alur ini.
+- Keluaran adalah berkas proyek XML yang dimodifikasi (<nama>-remix.xml); tidak ada perenderan video dan tidak ada ekspor MP4.
+
+### 19.2 Keputusan desain
+
+- Pemisahan murni/DOM: js/modules/presetRemixWorkflow.js (baru, 6909 byte) berisi orkestrasi tanpa DOM — validatePresetFileInput, analyzePresetText, normalizeReplacementUri, buildReplacement, remixPreset (diteruskan ke replaceAssets IPR-2), buildRemixDownloadName, dan computeRemixerUiState — sehingga seluruh logika alur dapat diuji otomatis di sandbox. Modul ini tidak membaca berkas (tugas panel peramban) dan tidak menjamin keberhasilan impor.
+- Panel peramban: js/ui/presetRemixerPanel.js (baru, 18936 byte) menghubungkan orkestrasi ke halaman Remixer — pemilihan berkas (klik dan seret-letakkan), FileReader untuk pembacaan lokal, kartu per slot dengan uri pengganti opsional dan berkas gambar metadata, tombol "Rakit Ulang dan Validasi", dan unduhan via Blob. Tidak ada permintaan jaringan.
+- Halaman: index.html menambahkan navigasi "Remixer", kartu menu, dan section page-remixer (22 id: unggah, analisis, hasil, pesan); footer menjadi v0.6.0. js/main.js (917 byte) mengimpor dan memanggil initPresetRemixerPanel(). js/ui/statusStrip.js (1640 byte) menambah chip ke-7 "Instant Preset Remixer". styles/main.css (27907 byte) menambah blok Remixer dengan token desain yang sudah ada; perbaikan responsif yang sudah berfungsi tidak disentuh.
+- Kejujuran di antarmuka: catatan pada panel menyatakan bahwa uri pengganti diisi manual, slot tanpa deklarasi media tidak dapat diganti, dan penerimaan hasil oleh Alight Motion pada perangkat nyata menunggu uji lapangan.
+
+### 19.3 Perilaku antarmuka (delapan keadaan Gate 2)
+
+computeRemixerUiState(model) menghitung keadaan murni dengan prioritas: parsing menang atas galat; galat menang atas analisis; hasil penggantian menghasilkan ready (ok) atau validationFailed; tanpa hasil, replacementCount > 0 menghasilkan replacementSelected; analisis sukses tanpa penggantian menghasilkan analysis; hanya berkas terpilih menghasilkan fileSelected; tanpa berkas menghasilkan empty.
+
+| Keadaan | Makna |
+|---------|-------|
+| empty | Belum ada berkas yang dipilih |
+| fileSelected | Berkas valid terpilih, belum dianalisis |
+| parsing | Berkas sedang dibaca dan dianalisis |
+| analysis | Analisis selesai; ringkasan dan slot ditampilkan |
+| replacementSelected | Minimal satu slot memiliki uri pengganti terisi |
+| validationFailed | Penggantian ditolak replaceAssets atau validasi struktur gagal |
+| ready | Hasil penggantian lulus validasi; unduhan diaktifkan |
+| processingError | Galat pemrosesan dengan pesan eksplisit |
+
+Struktur yang belum didukung dilaporkan parser (IPR-1) dan ditampilkan pada panel; slot tanpa deklarasi media ditandai dan tidak dapat diganti. Kegagalan pembacaan berkas, format tidak didukung, batas ukuran, dan penolakan replaceAssets semuanya dikomunikasikan dengan pesan eksplisit, bukan dipecahkan diam-diam.
+
+### 19.4 Verifikasi (dijalankan sebelum push, sandbox tanpa peramban)
+
+| Pemeriksaan | Hasil |
+|-------------|-------|
+| 11 uji baru tests/presetRemixWorkflow.test.js (IPR3-1..IPR3-11: validasi berkas masukan, analisis PB19 tiga slot, penolakan XML rusak dan tanpa scene, analisis tanpa media, normalisasi uri pengganti, perakitan metadata opsional, alur remix PB19 satu slot, alur penuh dengan metadata berkas, penerusan penolakan replaceAssets, delapan keadaan antarmuka, penamaan unduhan) dijalankan dari isi berkas uji itu sendiri | Lulus 11/11 |
+| Regresi: 113 uji lama (ve 18, sp 5, cl 8, am 36, fx 11, pp 18, pr 17) dari berkas repositori | Lulus 113/113 |
+| Total kasus terdaftar tests/index.html (113 + 11) | 124 |
+| Fixture PB1/PB19 diekstrak langsung dari tests/presetParser.test.js repositori tanpa perubahan data | Identik |
+| Strip status fitur | 7 chip; chip "Instant Preset Remixer" hadir |
+| Audit cakupan diff: 9 berkas (js/modules/presetRemixWorkflow.js, js/ui/presetRemixerPanel.js, js/ui/statusStrip.js, js/main.js, index.html, styles/main.css, tests/presetRemixWorkflow.test.js, tests/index.html, docs/SDD.md); algoritma parser (IPR-1), replaceAssets (IPR-2), mesin vektorisasi, validasi ekspor, dan halaman studio tidak tersentuh | Lulus |
+
+### 19.5 Keterbatasan (wajib dibaca sebelum klaim apa pun)
+
+- Panel DOM (js/ui/presetRemixerPanel.js) TIDAK diuji di sandbox karena sandbox tidak memiliki peramban; hanya modul orkestrasi murni yang diuji otomatis. tests/index.html (124 kasus) dan panel harus diverifikasi pengguna melalui server HTTP lokal sebelum fitur dianggap bekerja di peramban.
+- Validitas struktural (validator XV) BUKAN jaminan keberhasilan impor: penerimaan uri pengganti (content:// atau am:) oleh Alight Motion pada perangkat nyata belum pernah diuji — uji lapangan wajib sebelum fitur ini diiklankan berfungsi.
+- TIDAK diklaim kompatibel dengan semua preset: penggantian teruji hanya pada dua fixture ekspor asli AM 5.0.273 (Android) dan kasus sintetis; media video/audio, grup bersarang nyata, dan preset marketplace belum pernah diamati.
+- Tidak ada pembuatan uri otomatis; pengguna memasukkan uri tujuan secara manual. Metadata hanya ditulis pada atribut yang sudah ada; label layer tidak diubah.
+- Fitur ini mengekspor berkas proyek XML yang dimodifikasi; tidak ada perenderan video dan tidak ada ekspor MP4.
+
+### 19.6 Traceability
+
+| ID | Butir | Bukti | Status |
+|----|-------|-------|--------|
+| IPR-1 | Parser fondasi | Tidak berubah (lihat bagian 17); 18 uji tetap lulus pada regresi | Selesai (uji peramban + lapangan menunggu) |
+| IPR-2 | Penggantian aset selektif | Tidak berubah (lihat bagian 18); 17 uji tetap lulus pada regresi | Selesai (uji peramban + lapangan menunggu) |
+| IPR-3 | Integrasi antarmuka Instant Preset Remixer | 19.2; 19.4: 11/11 sandbox + regresi 113/113 (total 124 kasus terdaftar) | Selesai (uji peramban + lapangan menunggu) |
+| TS-2 | Uji otomatis ringan | 124 kasus terdaftar pada harness sandbox | Terlayani sebagian (sandbox; peramban menunggu) |

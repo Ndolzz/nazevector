@@ -26,6 +26,7 @@
           <button type="button" class="nav-link" data-nav="beranda">Beranda</button>
           <button type="button" class="nav-link" data-nav="studio">Studio</button>
           <button type="button" class="nav-link" data-nav="preset">Preset</button>
+          <button type="button" class="nav-link" data-nav="remixer">Remixer</button>
           <button type="button" class="nav-link" data-nav="tentang">Tentang</button>
         </nav>
         <button type="button" class="btn btn-primary btn-compact" data-nav="studio" data-nav-scroll="studio-workspace">Buka Studio</button>
@@ -93,12 +94,12 @@
                 <span class="menu-icon menu-icon-orange" aria-hidden="true">
                   <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3 L21 7.5 L12 12 L3 7.5 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 12 L12 16.5 L21 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 16.5 L12 21 L21 16.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                 </span>
-                <span class="badge badge-pending">Dalam pengembangan</span>
+                <span class="badge badge-ok">Tersedia (lokal)</span>
               </div>
               <h3 class="menu-card-title">Instant Preset Remixer</h3>
-              <p class="menu-card-desc">Saat ini fitur ini belum tersedia: sedang dikembangkan untuk merakit ulang preset dari berkas proyek Alight Motion.</p>
+              <p class="menu-card-desc">Impor berkas proyek Alight Motion (.xml), periksa slot aset yang terdeteksi, ganti uri aset terpilih, lalu unduh hasil yang telah divalidasi — seluruhnya lokal di peramban.</p>
               <div class="menu-card-foot">
-                <button type="button" class="btn btn-secondary btn-compact" data-nav="tentang">Lihat Status</button>
+                <button type="button" class="btn btn-primary btn-compact" data-nav="remixer" data-nav-scroll="remixer-workspace">Buka Remixer</button>
               </div>
             </article>
 
@@ -451,6 +452,94 @@
         </div>
       </section>
 
+      <section class="page page-hidden" id="page-remixer" aria-label="Remixer">
+        <div class="page-head">
+          <p class="page-kicker">INSTANT PRESET REMIXER</p>
+          <h1 class="page-title">Remixer Preset</h1>
+          <p class="page-sub">Impor berkas proyek Alight Motion (.xml), periksa slot aset yang terdeteksi, isi uri pengganti untuk slot terpilih, lalu rakit ulang dan unduh hasil yang lulus validasi struktur. Seluruh pemrosesan berjalan lokal di peramban Anda — tanpa akun, tanpa unggahan ke server. Penerimaan hasil oleh Alight Motion pada perangkat nyata menunggu uji lapangan.</p>
+        </div>
+
+        <div class="remixer-workspace" id="remixer-workspace">
+
+          <section class="studio-step" aria-labelledby="remixer-import-title">
+            <div class="studio-step-head">
+              <span class="step-chip" aria-hidden="true">01</span>
+              <h2 class="studio-step-title" id="remixer-import-title">Impor berkas proyek</h2>
+            </div>
+
+            <div class="card upload-card" id="remixer-upload-zone" tabindex="0" role="button"
+              aria-label="Unggah berkas proyek: klik atau seret dan letakkan berkas di sini">
+              <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true">
+                <path d="M12 16 V5 M7.5 9.5 L12 5 L16.5 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M4.5 15.5 V18 A1.7 1.7 0 0 0 6.2 19.7 H17.8 A1.7 1.7 0 0 0 19.5 18 V15.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+              <p class="upload-title">Klik untuk memilih berkas proyek</p>
+              <p class="upload-sub">atau seret dan letakkan berkas di sini</p>
+              <p class="upload-formats">XML Alight Motion (.xml) — maksimal 15 MB</p>
+            </div>
+            <input type="file" id="remixer-preset-input" accept=".xml,application/xml,text/xml,text/plain" hidden />
+
+            <div class="import-alert" id="remixer-alert" hidden>
+              <span id="remixer-alert-text"></span>
+              <button type="button" class="alert-close" id="remixer-alert-close" aria-label="Tutup pesan kesalahan">&times;</button>
+            </div>
+
+            <div class="preview-toolbar" id="remixer-panel" hidden>
+              <div class="preview-meta" id="remixer-file-meta"></div>
+              <div class="preview-actions">
+                <button type="button" class="btn btn-secondary btn-compact" id="btn-remix-replace">Ganti Berkas</button>
+                <button type="button" class="btn btn-danger btn-compact" id="btn-remix-clear">Hapus Berkas</button>
+              </div>
+            </div>
+
+            <div class="remixer-parsing" id="remixer-parsing" hidden>
+              <span class="spinner" aria-hidden="true"></span>
+              <p>Menganalisis proyek…</p>
+            </div>
+          </section>
+
+          <section class="studio-step" aria-labelledby="remixer-analysis-title">
+            <div class="studio-step-head">
+              <span class="step-chip" aria-hidden="true">02</span>
+              <h2 class="studio-step-title" id="remixer-analysis-title">Analisis slot aset</h2>
+            </div>
+
+            <div class="card remixer-card" id="remixer-analysis" hidden>
+              <div class="remixer-summary" id="remixer-summary"></div>
+              <div class="remixer-unsupported" id="remixer-unsupported" hidden></div>
+              <h3 class="remixer-slot-title" id="remixer-slot-title"></h3>
+              <div class="remixer-slots" id="remixer-slots"></div>
+              <p class="panel-note">Tidak ada pembuatan uri otomatis: isi uri aset tujuan (mis. content:// atau am:) secara manual; berkas gambar bersifat opsional dan hanya menyuplai metadata (nama berkas, ukuran, dimensi) pada atribut yang sudah ada pada deklarasi. Slot tanpa deklarasi &lt;media&gt; tidak dapat diganti. Seluruh pemrosesan lokal; penerimaan hasil oleh Alight Motion pada perangkat nyata menunggu uji lapangan (lihat docs/SDD.md bagian 19).</p>
+              <div class="field">
+                <button type="button" class="btn btn-primary btn-wide" id="btn-remix">Rakit Ulang dan Validasi</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="studio-step" aria-labelledby="remixer-result-title">
+            <div class="studio-step-head">
+              <span class="step-chip" aria-hidden="true">03</span>
+              <h2 class="studio-step-title" id="remixer-result-title">Hasil dan unduhan</h2>
+            </div>
+
+            <div class="card remixer-card" id="remixer-result" hidden>
+              <div class="export-status">
+                <span class="status-label">Status validasi</span>
+                <span class="badge badge-pending" id="remixer-validation-badge">Belum divalidasi</span>
+              </div>
+              <div class="field">
+                <button type="button" class="btn btn-primary btn-wide" id="btn-remix-download">Unduh Hasil (.xml)</button>
+              </div>
+              <div class="export-message" id="remixer-message" hidden>
+                <span id="remixer-message-text"></span>
+                <button type="button" class="alert-close" id="remixer-message-close" aria-label="Tutup pesan">&times;</button>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </section>
+
       <section class="page page-hidden" id="page-tentang" aria-label="Tentang">
         <div class="page-head">
           <p class="page-kicker">TENTANG ALAT INI</p>
@@ -474,6 +563,7 @@
                 <tr><td>Adapter XML Alight Motion</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>AM-1/AM-2/AM-3/AM-4/AM-5/AM-6: satu layer shape statis per komponen siluet (pemisah layer, pivot per bagian), satu layer garis centerline per goresan (path-stroke), atau satu layer per kontur termasuk lubang (1 layer = 1 kontur); struktur scene mengikuti pola ekspor asli (prolog, precompose, retime, mediaFillMode); outline pada tag path sesuai parser asli Alight Motion; keyframe menyusul (AN-1).</td></tr>
                 <tr><td>Validasi XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>XV-1/XV-2: well-formedness, prolog, atribut wajib, pola atribut ekspor asli, ID unik, rentang waktu, format warna.</td></tr>
                 <tr><td>Ekspor XML</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>EX-1: unduh .xml lokal; mode isi terbukti tampil di lapangan (TS-1); mode garis (VE-3), mode kontur per kontur (AM-6), dan warna asli (CV-1/CV-2) menunggu uji lapangan; verifikasi lanjutan keluaran multi-layer menyusul.</td></tr>
+                <tr><td>Instant Preset Remixer</td><td><span class="badge badge-ok">Tersedia (lokal)</span></td><td>IPR-1/IPR-2/IPR-3: parser proyek, penggantian aset selektif yang mempertahankan aset lain, dan halaman Remixer (impor, analisis slot, penggantian URI, validasi, unduhan); penerimaan hasil oleh Alight Motion pada perangkat nyata menunggu uji lapangan.</td></tr>
               </tbody>
             </table>
           </div>
@@ -495,7 +585,7 @@
     <footer class="site-footer">
       <div class="footer-inner">
         <span class="footer-brand">Naze Vector</span>
-        <span class="footer-version">v0.5.1 — satu layer per kontur (AM-6) dan warna asli per kontur (CV-2), di atas mode garis centerline (VE-3) dan adapter multi-mode (AM-5)</span>
+        <span class="footer-version">v0.6.0 — halaman Remixer (IPR-3): impor proyek, analisis slot aset, penggantian uri terpilih, validasi, dan unduhan lokal, di atas penggantian aset selektif (IPR-2) dan parser proyek (IPR-1)</span>
         <span class="footer-note">Kompatibilitas impor XML bergantung pada validasi dan pengujian aktual di Alight Motion.</span>
       </div>
     </footer>
