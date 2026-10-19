@@ -1,7 +1,7 @@
 # SDD — Naze Vector Website MVP
 
 Dokumen: Spesifikasi dan Desain (SDD) untuk Naze Vector.
-Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-18.
+Repositori: Ndolzz/nazevector. Diperbarui: 2026-10-19.
 
 ## 1. Ringkasan
 
@@ -844,3 +844,57 @@ Struktur yang belum didukung dilaporkan parser (IPR-1) dan ditampilkan pada pane
 | IPR-2 | Penggantian aset selektif | Tidak berubah (lihat bagian 18); 17 uji tetap lulus pada regresi | Selesai (uji peramban + lapangan menunggu) |
 | IPR-3 | Integrasi antarmuka Instant Preset Remixer | 19.2; 19.4: 11/11 sandbox + regresi 113/113 (total 124 kasus terdaftar) | Selesai (uji peramban + lapangan menunggu) |
 | TS-2 | Uji otomatis ringan | 124 kasus terdaftar pada harness sandbox | Terlayani sebagian (sandbox; peramban menunggu) |
+
+## 20. RV-4 - Node.js Render Server (API Render MP4)
+
+Status: diimplementasikan pada cabang feat/server-render-mvp (2026-10-19). Bagian ini mendokumentasikan arsitektur, kontrak API, konfigurasi, dan status verifikasi implementasi server render pada direktori server/.
+
+### 20.1 Arsitektur
+
+Implementasi hanya memakai modul bawaan Node.js (node:http, node:fs, node:crypto, node:child_process, node:dns, node:path); tidak ada dependensi eksternal.
+
+- server/src/index.js: titik masuk; memuat konfigurasi, membersihkan job yatim, memeriksa FFmpeg, menyalakan server, sapuan video kedaluwarsa tiap 60 detik, mati tertib saat SIGINT/SIGTERM.
+- server/src/config.js: konfigurasi lingkungan tervalidasi penuh; galat dikumpulkan sekaligus (murni).
+- server/src/rateLimiter.js: pembatas laju jendela tetap per kunci (murni).
+- server/src/mimeType.js: deteksi magic byte PNG/JPEG/WebP dan pemeriksaan Content-Type (murni).
+- server/src/ffmpeg.js: pembungkus proses FFmpeg/FFprobe; probe versi, pembacaan dimensi, dekode ke RGBA (dengan penurunan skala bila aset lebih besar dari kanvas), encoder H.264 dengan argumen terpisah (tanpa shell), batas waktu, dan pembatas keluaran.
+- server/src/downloader.js: pengunduh aset anti-SSRF; setiap hop divalidasi checkSourceUrl, redirect divalidasi ulang validateRedirect, seluruh alamat DNS diperiksa checkResolvedAddresses sebelum koneksi, koneksi dipinkan ke alamat tervalidasi dengan servername hostname asli, batas ukuran, pemeriksaan Content-Type dan magic byte, penulisan atomik (part lalu rename).
+- server/src/jobManager.js: penyimpanan job; id acak heksadesimal 32, meta.json atomik (tmp+rename), pendaftaran video, sapuan kedaluwarsa, pembersihan direktori yatim, pemeriksaan ruang disk via statfs.
+- server/src/renderService.js: orkestrasi; validasi proyek, antrean render, pemuatan aset (dataUri atau sourceUrl), streaming bingkai ke stdin FFmpeg dengan satu penyangga yang dipakai ulang dan backpressure (drain), kemajuan dipersist pada tonggak, kegagalan dicatat dan video parsial dihapus.
+- server/src/httpServer.js: API HTTP; autentikasi Bearer (sha256 + timingSafeEqual, fail closed), pembatas ukuran body, pembatas laju per endpoint, CORS allowlist, dukungan Range untuk MP4, amplop galat konsisten.
+
+### 20.2 Kontrak API
+
+- GET /health (publik): {status, ffmpeg, uptime, active, queueLength}.
+- POST /api/render-jobs: body {project:{...}} sesuai kontrak proyek v1; sukses 201 {jobId, status, position, createdAt} dengan header Location.
+- GET /api/render-jobs/:id: {id, status, position, progress, error, createdAt, video}.
+- GET /api/render-jobs/:id/video: MP4 setelah completed; 409 bila belum selesai, 410 bila failed/expired, 404 bila tidak dikenal; Range didukung (206/416).
+- Metode lain: 405 dengan header Allow. Amplop galat: {error:{code,message}}.
+- Kode galat: VALIDATION_ERROR (400), BAD_JSON (400), UNAUTHORIZED (401), NOT_FOUND (404), METHOD_NOT_ALLOWED (405), CONFLICT (409), GONE (410), PAYLOAD_TOO_LARGE (413), RANGE_NOT_SATISFIABLE (416), QUEUE_FULL (429), RATE_LIMITED (429), FFMPEG_UNAVAILABLE (503), DISK_FULL (503), INTERNAL_ERROR (500).
+- Pembatas laju per klien: pembuatan job 5 per 5 menit; status 120 per menit; video 30 per menit.
+
+### 20.3 Konfigurasi
+
+Variabel lingkungan (semua opsional kecuali NAZE_API_KEY di produksi): NAZE_PORT, NAZE_JOBS_DIR, NAZE_SOURCE_ALLOWLIST, NAZE_VIDEO_TTL_MS, NAZE_MIN_FREE_DISK_BYTES, NAZE_FFMPEG_PATH, NAZE_FFPROBE_PATH, NAZE_RENDER_TIMEOUT_MS, NAZE_DOWNLOAD_TIMEOUT_MS, NAZE_MAX_REQUEST_BODY_BYTES, NAZE_MAX_ASSET_BYTES, NAZE_MAX_ACTIVE_RENDERS (1..8), NAZE_MAX_QUEUED_RENDERS (1..100), NAZE_ALLOWED_ORIGIN (http(s)://host tanpa path), NAZE_API_KEY (minimal 16 karakter), NAZE_ALLOW_NO_AUTH (0/1, hanya pengembangan). Rincian lengkap ada di server/README.md dan server/.env.example.
+
+### 20.4 Batas MVP
+
+- 1280x720, 30 fps, durasi 200..15000 ms, 1..8 layer; satu render aktif secara bawaan.
+- Memori: satu penyangga bingkai 1280x720 RGBA dipakai ulang; aset didekode ke RGBA dengan penurunan skala bila melebihi 1280x720 piksel (aset RGBA maksimal sekitar 8 x 3,7 MB).
+- Disk bebas minimal 512 MB sebelum menerima job; video dihapus setelah NAZE_VIDEO_TTL_MS.
+- UI klien belum diintegrasikan (sesuai arahan; menyusul setelah pipeline tervalidasi).
+
+### 20.5 Status Verifikasi (jujur)
+
+Sudah dilakukan di lingkungan verifikasi (tanpa Node.js/FFmpeg):
+
+- Audit remote sebelum perubahan: HEAD feat/server-render-mvp = 4146bc3; main = b3b5aed (tidak tersentuh).
+- Kompilasi sintaksis 17 berkas JS lulus (tanpa eksekusi).
+- 19 kasus uji modul murni lulus: config 10, rateLimiter 5, mimeType 3, computeScaledDims 1.
+- JSON.parse server/package.json lulus.
+
+Belum dijalankan (jujur, butuh mesin target dengan Node.js dan FFmpeg):
+
+- 72 kasus node:test pada server/tests/, termasuk uji integrasi FFmpeg nyata yang otomatis ter-skip bila FFmpeg tidak tersedia. Perintah: cd server && npm test.
+- 75 kasus harness peramban pada tests/index.html.
+- Render MP4 end-to-end belum dibuktikan tanpa FFmpeg nyata di mesin target.

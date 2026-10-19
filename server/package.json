@@ -1,0 +1,14 @@
+{
+  "name": "nazevector-render-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Server render MP4 untuk Naze Vector (modul bawaan Node.js, tanpa dependensi)",
+  "type": "module",
+  "engines": {
+    "node": ">=18.15"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test tests/"
+  }
+}
